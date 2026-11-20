@@ -47,6 +47,19 @@ class WebContractTest {
     }
 
     @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"custom-message", "cause"})
+    void internalBusinessErrorHidesSensitiveDetails(String construction) throws Exception {
+        String body = mvc.perform(get("/contract/business-internal/" + construction))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+            .andExpect(jsonPath("$.message").value("서버 내부 오류가 발생했습니다."))
+            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.trace").doesNotExist())
+            .andReturn().getResponse().getContentAsString();
+        assertThat(body).doesNotContain("secret-password", "internal-host", "IllegalStateException");
+    }
+
+    @ParameterizedTest
     @CsvSource({"VALIDATION_ERROR,400", "UNAUTHORIZED,401", "FORBIDDEN,403", "NOT_FOUND,404", "METHOD_NOT_ALLOWED,405", "INTERNAL_SERVER_ERROR,500"})
     void errorCodesHaveExpectedHttpStatus(ErrorCode code, int expected) {
         assertThat(ErrorCodeHttpMapper.toStatus(code).value()).isEqualTo(expected);
@@ -112,6 +125,15 @@ class WebContractTest {
         ApiResponse<Name> create(@Valid @RequestBody Name name) { return ApiResponse.success(name); }
         @GetMapping("/contract/business")
         void business() { throw new BusinessException(ErrorCode.FORBIDDEN, "공개 가능한 설명"); }
+        @GetMapping("/contract/business-internal/custom-message")
+        void internalBusinessMessage() {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "jdbc:secret-password internal-host");
+        }
+        @GetMapping("/contract/business-internal/cause")
+        void internalBusinessCause() {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR,
+                new IllegalStateException("jdbc:secret-password internal-host"));
+        }
         @GetMapping("/contract/unexpected")
         void unexpected() { throw new IllegalStateException("jdbc:secret-password internal-host"); }
     }

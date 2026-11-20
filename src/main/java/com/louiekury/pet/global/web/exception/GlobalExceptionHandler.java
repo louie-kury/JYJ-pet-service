@@ -22,8 +22,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
         ErrorCode code = exception.getErrorCode();
-        return ResponseEntity.status(ErrorCodeHttpMapper.toStatus(code))
-            .body(ApiResponse.error(code.name(), exception.getMessage()));
+        HttpStatus status = ErrorCodeHttpMapper.toStatus(code);
+        if (status.is5xxServerError()) {
+            log.error("업무 요청 처리 중 서버 오류가 발생했습니다.", exception);
+        }
+        String message = status.is5xxServerError() ? code.getMessage() : exception.getMessage();
+        return ResponseEntity.status(status)
+            .body(ApiResponse.error(code.name(), message));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
