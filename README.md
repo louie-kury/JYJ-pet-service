@@ -25,6 +25,20 @@ export PATH="$JAVA_HOME/bin:$PATH"
 java -version
 ```
 
+로컬 MySQL을 Docker Compose로 준비하려면 Docker Desktop을 실행하고 서비스 루트에서 다음 순서로 진행합니다.
+
+1. `cp -n .env.example .env`로 예시를 복사합니다. 기존 `.env`는 덮어쓰지 않습니다.
+2. `.env`의 `MYSQL_ROOT_PASSWORD`와 `MYSQL_PASSWORD`를 각각 로컬 개발용 비밀번호로 바꿉니다.
+3. 아래 명령으로 MySQL 8.4.13을 실행하고 상태와 로그를 확인합니다. 로그에 접속 준비가 완료된 뒤 애플리케이션을 실행합니다.
+
+```sh
+docker compose up -d
+docker compose ps
+docker compose logs --tail=50 mysql
+```
+
+MySQL은 `127.0.0.1:3306`, DB는 `louie_kury_pet_dev`, 서비스 사용자는 `pet_service`입니다. 같은 포트나 `louie-kury-mysql` 이름을 쓰는 기존 컨테이너가 있으면 용도를 확인하고 조정하며 임의로 삭제하지 않습니다. 데이터는 `louie-kury-mysql-data` 볼륨에 남습니다. 초기화된 볼륨에서는 `.env`의 비밀번호를 바꾸는 것만으로 기존 DB 사용자 비밀번호가 변경되지 않습니다.
+
 DB를 준비한 뒤 아래 환경변수를 현재 셸이나 IDE 실행 설정에 지정합니다. 실제 비밀번호·URI를 저장소에 저장하지 마세요. 아래 값은 형식을 설명하는 템플릿이며 그대로 접속할 수 없습니다.
 
 | 환경변수 | 필수 | 설명 |
@@ -35,7 +49,7 @@ DB를 준비한 뒤 아래 환경변수를 현재 셸이나 IDE 실행 설정에
 | `MONGODB_URI` | 예 | Atlas에서 발급한 `mongodb+srv://<user>:<password>@<host>/?retryWrites=true&w=majority` 형식의 연결 URI |
 | `MONGODB_DATABASE` | 아니요 | 기본값 `louie_kury_pet_dev` |
 
-Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해야 합니다. URI의 사용자명·비밀번호에 예약 문자가 있으면 URI 규칙에 맞게 인코딩합니다. `.env` 파일을 자동으로 읽는 기능은 없으므로 환경변수는 실행 프로세스에 직접 전달해야 합니다.
+Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해야 합니다. URI의 사용자명·비밀번호에 예약 문자가 있으면 URI 규칙에 맞게 인코딩합니다. Docker Compose는 `.env`를 자동으로 읽지만 호스트에서 실행하는 Spring Boot·IDE에는 전달하지 않습니다. `.env.example`의 MySQL 연결값과 `.env`에 설정한 서비스 비밀번호, 별도로 준비한 MongoDB URI를 애플리케이션 실행 환경변수에 지정합니다.
 
 ```sh
 ./gradlew bootRun
@@ -53,7 +67,7 @@ Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해�
 
 공통 코드의 테스트는 실제 DB 접속과 구분합니다. JDK 17에서 웹 공통 응답·오류 처리, 시각 변환, 감사 시각 제공과 삭제 동작의 테스트 및 컴파일·실행 JAR 생성을 확인했습니다. 자세한 결과는 PR의 검증 기록에서 확인합니다. 실제 MySQL·Atlas 연결, 감사 리스너 등록과 저장·재조회, 시간 변환의 DB 왕복 검증은 수행하지 않았습니다.
 
-실제 DB 연결·저장 검증은 이 작업 환경에 접속 환경변수가 제공되지 않아 실행하지 않았으며 Docker daemon도 실행 중이지 않습니다. 사용자가 Atlas에서 직접 접속·쓰기·읽기에 성공했다고 보고한 결과는 신규 서비스의 매핑·감사 기능 검증 결과로 간주하지 않습니다.
+실제 DB 연결·저장 검증은 초기 검증 당시 접속 환경변수가 제공되지 않고 Docker daemon도 실행 중이지 않아 수행하지 않았습니다. 위 Compose 실행 절차 역시 컨테이너 생성·접속 성공을 검증한 결과가 아닙니다. 사용자가 Atlas에서 직접 접속·쓰기·읽기에 성공했다고 보고한 결과는 신규 서비스의 매핑·감사 기능 검증 결과로 간주하지 않습니다.
 
 ## 공통 코드와 계약
 
