@@ -135,6 +135,24 @@ class MongoMigrationIntegrationTest {
         assertPrepared(database);
     }
 
+    @Test
+    void rejectsNonStringRegistrationKey() throws Exception {
+        MongoDatabase database = freshDatabase();
+        database.getCollection("pets").insertOne(new Document("_id", "invalid")
+            .append("registration", new Document("requestKey", 42)));
+        assertThat(run("migrate", database).exitCode()).isNotZero();
+        assertThat(database.getCollection("pets").find().first().get("_id")).isEqualTo("invalid");
+    }
+
+    @Test
+    void allowsMissingRegistrationKey() throws Exception {
+        MongoDatabase database = freshDatabase();
+        database.getCollection("pets").insertOne(new Document("_id", "without-key")
+            .append("registration", new Document()));
+        assertSuccess(run("migrate", database));
+        assertThat(database.getCollection("pets").countDocuments()).isEqualTo(1);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"wrong-type", "missing-field", "wrong-id"})
     @DisplayName("기존 락 문서가 잘못됐으면 고쳐 쓰거나 마이그레이션을 진행하지 않는다")
@@ -196,7 +214,7 @@ class MongoMigrationIntegrationTest {
         assertThat(failed.exitCode()).as(failed.output()).isNotZero();
         assertThat(failed.output()).contains("MIGRATION_FAILED")
             .doesNotContain("MIGRATION_COMPLETE");
-        assertThat(history(database)).hasSize(4);
+        assertThat(history(database)).hasSize(5);
     }
 
     @Test
@@ -278,7 +296,7 @@ class MongoMigrationIntegrationTest {
     private static void assertPrepared(MongoDatabase database) {
         List<Document> rows = history(database);
         assertThat(rows).extracting(row -> row.getString("id"))
-            .containsExactlyInAnyOrder("001-preflight", "002-indexes", "003-seed", "004-verify");
+            .containsExactlyInAnyOrder("000-registration-key-validation", "001-preflight", "002-indexes", "003-seed", "004-verify");
         assertThat(rows).allSatisfy(row -> {
             assertThat(row.getString("author")).isEqualTo("louie-kury");
             assertThat(row.getString("md5sum")).isNotBlank();
