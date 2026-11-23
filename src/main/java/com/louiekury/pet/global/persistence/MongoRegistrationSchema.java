@@ -67,6 +67,10 @@ public final class MongoRegistrationSchema {
     }
 
     public static void verifyCompletedHistory(MongoDatabase database) {
+        Document keyType = database.getCollection("DATABASECHANGELOG").find(
+            new Document("id", "000-registration-key-type").append("author", AUTHOR)
+                .append("fileName", "db/mongodb/changes/v000-registration-key-type.xml")).first();
+        require(keyType != null && "EXECUTED".equals(keyType.getString("execType")));
         Document keyValidation = database.getCollection("DATABASECHANGELOG").find(
             new Document("id", "000-registration-key-validation")
                 .append("author", AUTHOR)
