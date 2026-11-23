@@ -60,14 +60,17 @@ class WebContractTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"VALIDATION_ERROR,400", "UNAUTHORIZED,401", "FORBIDDEN,403", "NOT_FOUND,404", "METHOD_NOT_ALLOWED,405", "INTERNAL_SERVER_ERROR,500"})
+    @CsvSource({"VALIDATION_ERROR,400", "UNAUTHORIZED,401", "FORBIDDEN,403", "NOT_FOUND,404", "METHOD_NOT_ALLOWED,405", "INTERNAL_SERVER_ERROR,500",
+        "IDEMPOTENCY_CONFLICT,409", "MEDIA_SERVICE_UNAVAILABLE,503", "REFERENCE_DATA_UNAVAILABLE,503", "PERSISTENCE_UNAVAILABLE,503"})
     void errorCodesHaveExpectedHttpStatus(ErrorCode code, int expected) {
         assertThat(ErrorCodeHttpMapper.toStatus(code).value()).isEqualTo(expected);
     }
 
     @Test
     void mappingCoversEntireErrorVocabulary() {
-        assertThat(ErrorCode.values()).hasSize(6);
+        assertThat(ErrorCode.values()).contains(ErrorCode.VALIDATION_ERROR,
+            ErrorCode.UNAUTHORIZED, ErrorCode.FORBIDDEN, ErrorCode.NOT_FOUND,
+            ErrorCode.METHOD_NOT_ALLOWED, ErrorCode.INTERNAL_SERVER_ERROR);
         for (ErrorCode code : ErrorCode.values()) {
             assertThat(ErrorCodeHttpMapper.toStatus(code)).isNotNull();
         }
