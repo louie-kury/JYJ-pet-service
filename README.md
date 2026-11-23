@@ -11,6 +11,7 @@
 | Gradle | Wrapper 8.14.3 (`./gradlew`) |
 | MySQL | 8.4.13 |
 | MongoDB | Atlas 8.0.39, 개발 클러스터 `louie-kury-dev` |
+| MongoDB 마이그레이션 | Liquibase core·MongoDB 확장 5.0.4, 별도 MongoDB 드라이버 5.9.1 |
 | 업무·API·로그 시간대 | `Asia/Seoul` / UTC+09:00 |
 
 접종명 기준 데이터는 MySQL, 나머지 반려동물 서비스 데이터는 MongoDB에 저장합니다. MongoDB 개발 DB 이름은 `louie_kury_pet_dev`입니다. 등록 기본정보는 `pets`, 종·품종 기준은 `pet_species` 컬렉션을 사용합니다. DB 이름 설정만으로 기준 데이터·필수 인덱스가 준비되지는 않습니다.
@@ -51,19 +52,31 @@ DB를 준비한 뒤 아래 환경변수를 현재 셸이나 IDE 실행 설정에
 
 Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해야 합니다. URI의 사용자명·비밀번호에 예약 문자가 있으면 URI 규칙에 맞게 인코딩합니다. Docker Compose는 `.env`를 자동으로 읽지만 호스트에서 실행하는 Spring Boot·IDE에는 전달하지 않습니다. `.env.example`의 MySQL 연결값과 `.env`에 설정한 서비스 비밀번호, 별도로 준비한 MongoDB URI를 애플리케이션 실행 환경변수에 지정합니다.
 
+앱 기동 전 MongoDB 마이그레이션을 먼저 실행합니다. 마이그레이션 명령에는 아래 전용 설정만 필요하며 MySQL 연결은 요구하지 않습니다. 실제 URI는 보안된 셸/실행 환경에 지정하고 `.env`를 자동으로 읽는다고 가정하지 않습니다.
+
+| 마이그레이션 환경변수 | 필수 | 설명 |
+| --- | --- | --- |
+| `MONGODB_MIGRATION_URI` | 예 | 마이그레이션 계정 URI. URI에 DB가 있으면 아래 이름과 일치해야 합니다. |
+| `MONGODB_MIGRATION_DATABASE` | 예 | 대상 DB 명시. 개발 예시는 `louie_kury_pet_dev`입니다. |
+
 ```sh
+./gradlew mongoMigrationStatus
+./gradlew mongoMigrate
+./gradlew mongoMigrationStatus
 ./gradlew bootRun
 ```
 
-실행에는 두 DB 연결 설정이 필요합니다. Hibernate `ddl-auto=none`과 MongoDB 자동 인덱스 생성 비활성화를 사용하며 업무 스키마·인덱스를 자동으로 만들지 않습니다. 등록 전에는 아래 MongoDB 기준 데이터·인덱스 준비가 필요합니다. 서버 기동은 DB 저장 성공을 검증한 결과가 아닙니다.
+`mongoMigrate`의 `MIGRATION_COMPLETE`를 확인한 뒤 앱을 기동합니다. status는 체크섬을 검증하고 미적용 변경 수·ID를 출력하며 앱 실행 준비 상태 전체를 대신 검사하지는 않습니다. 마이그레이션 전용 계정에는 대상 DB의 이력/락 읽기쓰기, 기준 데이터 읽기/추가 및 인덱스 생성 권한이 필요합니다. 앱 계정은 업무 권한 외에 이력/락·구조 읽기 권한이 필요하며 앱이 직접 DDL을 실행하지 않습니다.
+
+앱 실행에는 앞서 안내한 MySQL·MongoDB 설정이 모두 필요합니다. Hibernate `ddl-auto=none`과 MongoDB 자동 인덱스 생성 비활성화를 유지합니다. 서버는 시작 시 완료 이력·활성 락 부재·종/품종·필수 인덱스를 읽기 전용으로 검사하고 미준비·조회 실패면 기동을 중단합니다. 체크섬의 실제 재계산·변조 거부는 별도 migration/status 명령의 책임이므로 배포 시 해당 검증을 생략하지 않습니다.
 
 ## 반려동물 등록
 
 `POST /api/pets`는 현재 인증 없이 등록합니다. 회원 기능이 없어 `caregiverId`를 null로 저장하며 본문·임의 헤더의 사용자 ID를 소유자로 사용하지 않습니다. 기존 미연결 데이터의 귀속은 인증 도입 때 별도로 정합니다. [임시 결정 ADR](docs/adr/0003-registration-before-member-linking.md)을 참고하세요.
 
-이름·종·성별은 필수이며 나머지 기본정보는 생략/null을 허용합니다. 이름은 공백 제거 후 1~50자, 성별은 `MALE`/`FEMALE`, 체중은 kg 단위로 0 초과 200 이하·유효 소수 최대 3자리입니다. 생일은 한국시간 오늘 이후를 거부합니다. 입력·나이 계산의 상세 기준은 [개발 계획](docs/plans/pet-registration.md)에 있습니다.
+이름·종·성별은 필수이며 나머지 기본정보는 생략/null을 허용합니다. 이름은 앞뒤 공백 제거 후 1~50자, 성별은 `MALE`/`FEMALE`, 체중은 kg 단위로 0 초과 200 이하·유효 소수 최대 3자리입니다. 생일은 한국시간 오늘 이후를 거부하며, 생일이 있으면 만 년·잔여 개월로 나이를 계산합니다.
 
-다음 요청은 형식 예시입니다. 아래 MongoDB 준비 스크립트의 기본 강아지 ID `dog`를 사용합니다. 기존 데이터에 적용하기 전 ID/code 매핑을 확인하세요. 실제 서버 QA에서도 기본 종을 이용한 무인증 등록 성공을 확인했습니다.
+다음 요청은 형식 예시입니다. MongoDB 마이그레이션의 기본 강아지 ID `dog`를 사용합니다. 기존 데이터에 적용하기 전 ID/code 매핑을 확인하세요.
 
 ```sh
 curl -i -X POST http://localhost:8080/api/pets \
@@ -77,16 +90,17 @@ curl -i -X POST http://localhost:8080/api/pets \
 
 선택 헤더 `Idempotency-Key`는 ASCII 영숫자·`-`·`_`·`.`·`:`의 1~128자입니다. 현재 익명 등록 전체에서 같은 키는 입력이 같거나 달라도 `409 IDEMPOTENCY_CONFLICT`이며 기존 ID·응답을 재전달하지 않습니다. 무키 요청은 각각 새 동물이므로 응답 유실 후 무키 재시도의 중복을 막지 않습니다. 이는 공통 API 초안의 사용자별 결과 재전달과 다른 임시 정책입니다.
 
-등록 전에 대상 DB를 확인하고 서비스 루트에서 준비·확인 스크립트를 명시적으로 실행합니다. 다음은 이미 설정한 `MONGODB_URI`에 접속해 개발 DB를 선택하는 예시입니다. 다른 DB를 사용할 때 두 명령의 DB 이름을 함께 바꿉니다.
+## MongoDB 변경 관리
 
-```sh
-mongosh "$MONGODB_URI" --eval 'db = db.getSiblingDB("louie_kury_pet_dev"); load("scripts/mongodb/prepare-registration.js");'
-mongosh "$MONGODB_URI" --eval 'db = db.getSiblingDB("louie_kury_pet_dev"); load("scripts/mongodb/verify-registration.js");'
-```
+마이그레이션은 앱과 분리된 `src/migration` 소스·의존성에서 실행하며 앱 기동 시 자동 적용하지 않습니다. `src/migration/resources/db/mongodb/changelog.xml`이 V1의 사전 검사 → 인덱스 → 기본 종 → 최종 검사 네 변경셋을 실행하고 `DATABASECHANGELOG`에 이력을 남깁니다. 동시 실행은 `DATABASECHANGELOGLOCK`으로 직렬화하고 락 획득 대기는 최대 1분입니다.
 
-`prepare-registration.js`는 `pets.registration.requestKey`의 `registration_request_key_unique` partial unique 인덱스와 종 code unique 인덱스를 만들고 기본 종 `dog`/`DOG`·`cat`/`CAT`을 없을 때만 삽입합니다. 기존 종·품종을 덮어쓰지 않고 타입·종 code·품종 ID 중복 및 기본 ID/code 충돌을 검사합니다. 기본 품종 배열은 비어 있으므로 초기 등록은 `breedId`를 생략/null로 보냅니다. 실제 품종을 사용할 때는 검토된 데이터를 해당 종의 `breeds` 배열에 `breedId`, `name`, `active` 형태로 준비합니다.
+빈 DB는 필수 인덱스와 기본 종 `dog`/`DOG`·`cat`/`CAT`을 준비합니다. 기존 JS로 준비한 DB도 같은 명령으로 실제 데이터·구조를 검증한 뒤 이력을 생성합니다. 기존 동물·품종을 덮어쓰지 않고 종은 `$setOnInsert`로만 추가합니다. 기본 품종 배열은 비어 있으므로 초기 등록은 `breedId`를 생략/null로 보냅니다. 품종 사용 전 검토된 `breedId`, `name`, `active` 데이터를 해당 종의 `breeds`에 준비합니다. 종 enum 전환은 후속 작업이며 현재 종·품종 MongoDB 모델을 유지합니다.
 
-`verify-registration.js`는 키 인덱스의 이름·필드·unique·partial 조건과 활성 DOG/CAT 기준을 확인합니다. 키 있는 등록은 저장 직전에도 이 인덱스를 검사하고 없거나 정의가 다르면 503으로 중단합니다. 문자열 키가 없는 문서는 unique 대상에서 제외돼 무키 다건 등록이 가능합니다. 자동 인덱스 생성·기존 데이터 삭제·운영 DB 자동 시딩은 하지 않습니다. 스크립트 실행·실제 DB 검증 결과는 아래 검증 기록과 구분해 확인합니다.
+키 인덱스는 `registration_request_key_unique`, 종 code 인덱스는 `species_code_unique`입니다. 문자열 requestKey만 partial unique 대상이며 무키 문서는 제외합니다. 기존 타입·중복·ID/code 충돌·인덱스 불일치는 자동 수정하지 않고 실패합니다. 예전 `prepare-registration.js`·`verify-registration.js`는 마이그레이션으로 대체됐습니다.
+
+한 번 적용한 XML과 V1 검증 로직은 수정하지 않고 새 변경 파일·클래스를 추가합니다. 적용 이력을 지우거나 체크섬을 강제로 초기화하지 않습니다. 중간 실패는 앞 단계만 완료돼 있을 수 있으므로 상태와 실제 구조를 확인하고 원인을 정정한 뒤 재실행합니다. 자동 데이터 삭제·컬렉션/인덱스 drop·일괄 rollback은 제공하지 않습니다.
+
+프로세스가 비정상 종료돼 락이 남으면 모든 마이그레이션 실행자의 종료를 확인한 뒤 관리자가 같은 대상 DB에서 Liquibase의 락 해제 절차를 수행합니다. 이 프로젝트의 Gradle task는 migrate/status만 제공하므로 락 해제는 별도 관리 작업입니다. 살아 있는 실행자의 락이나 이력 문서를 임의 삭제하지 않습니다. URI·서버 원문을 숨긴 실패 메시지만 제공되므로 대상 DB·권한·상태·실제 구조를 함께 확인합니다.
 
 ## 빌드와 테스트
 
@@ -96,19 +110,9 @@ mongosh "$MONGODB_URI" --eval 'db = db.getSiblingDB("louie_kury_pet_dev"); load(
 
 테스트만 실행하려면 `./gradlew test`를 사용합니다. 결과는 `build/reports/tests/test/index.html`에서 확인합니다. 빌드와 테스트도 위의 JDK 17 환경에서 실행합니다.
 
-2026-11-23 JDK 17에서 다음 검증 명령이 성공했습니다. 이 주소·포트는 검증 사례이며 고정 실행 설정이 아닙니다.
+실제 MongoDB 통합 검사를 포함하려면 `PET_TEST_MONGODB_URI`를 테스트 전용 MongoDB URI로 지정한 뒤 `./gradlew test build`를 실행합니다. 설정하지 않으면 MongoDB 통합 검사는 건너뜁니다. 테스트는 전용 DB를 생성·정리하므로 개발·운영 데이터 계정을 그대로 사용하지 않습니다. Mock·웹 검사의 통과와 실제 MongoDB·실행 서버 검증은 구분합니다.
 
-```sh
-PET_TEST_MONGODB_URI=mongodb://127.0.0.1:27028 ./gradlew test build
-```
-
-전체 101개 테스트가 실패·건너뜀 없이 통과했으며 실제 MongoDB를 사용하는 11개 검사를 포함합니다. JSON 소수 원문이 부정확하게 해석되던 두 사례와 응답·저장 시각의 밀리초 정밀도 불일치 사례를 수정한 회귀 검사도 통과했습니다. 독립 코드 리뷰에서 남은 지적은 없었습니다.
-
-실행 JAR을 표준 프로필로 기동해 로컬 MongoDB 8.0·MySQL 8.4.13 연결을 확인했고, 별도 QA DB에 준비·확인 스크립트를 적용했습니다. 실제 서버의 독립 QA도 통과했습니다. MySQL 연결 확인은 접종명 업무 구현·저장 검증을 뜻하지 않으며 Atlas 검증 결과로 대신하지 않습니다.
-
-독립 QA는 실제 서버에서 39개 시나리오·42개 요청과 최초 정상 등록 1건을 확인했습니다. 정상 저장 10건의 소유자 명시 null·생일 문자열·Decimal128·스냅샷/감사 시각 일치를 확인했고, 동일 키 동시 4건은 201 한 건·409 세 건으로 처리됐습니다. 입력·사용자 ID 주입·종/품종 오류, 미디어 non-null의 503, 미세 소수 경계 거부와 실패 시 미저장도 확인했습니다. 남은 결함은 없었습니다.
-
-회원·인증·소유권 연결과 실제 미디어 서비스 연동은 이번 구현 범위에서 제외했습니다. 무인증 등록·미연결 데이터 및 미디어 값 거부의 현재 계약을 검증하며, 인증·파일 연동 완료로 표현하지 않습니다.
+회원·인증·소유권 연결과 실제 미디어 서비스 연동은 이번 구현 범위에 포함하지 않습니다. MySQL용 마이그레이션과 종 enum 전환도 후속 작업입니다.
 
 ## 공통 코드와 계약
 

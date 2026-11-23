@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:mongo="http://www.liquibase.org/xml/ns/mongodb"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd http://www.liquibase.org/xml/ns/mongodb https://www.liquibase.org/xml/ns/mongodb/liquibase-mongodb-latest.xsd">
+    <!-- 적용된 파일·검증 클래스는 변경하지 않고 다음 버전 변경셋을 추가한다. -->
+    <changeSet id="001-preflight" author="louie-kury">
+        <customChange class="com.louiekury.pet.migration.RegistrationPreflightV1"/>
+    </changeSet>
+    <changeSet id="002-indexes" author="louie-kury">
+        <mongo:createIndex collectionName="pets">
+            <mongo:keys>{"registration.requestKey":1}</mongo:keys>
+            <mongo:options>{"name":"registration_request_key_unique","unique":true,"partialFilterExpression":{"registration.requestKey":{"$type":"string"}}}</mongo:options>
+        </mongo:createIndex>
+        <mongo:createIndex collectionName="pet_species">
+            <mongo:keys>{"code":1}</mongo:keys>
+            <mongo:options>{"name":"species_code_unique","unique":true}</mongo:options>
+        </mongo:createIndex>
+    </changeSet>
+    <changeSet id="003-seed" author="louie-kury">
+        <!-- findAndModify의 쓰기 오류는 명령 오류로 반환되어 변경셋 완료를 막는다. -->
+        <mongo:runCommand>
+            <mongo:command>{"findAndModify":"pet_species","query":{"_id":"dog"},"update":{"$setOnInsert":{"code":"DOG","name":"강아지","active":true,"breeds":[]}},"upsert":true,"new":true}</mongo:command>
+        </mongo:runCommand>
+        <mongo:runCommand>
+            <mongo:command>{"findAndModify":"pet_species","query":{"_id":"cat"},"update":{"$setOnInsert":{"code":"CAT","name":"고양이","active":true,"breeds":[]}},"upsert":true,"new":true}</mongo:command>
+        </mongo:runCommand>
+    </changeSet>
+    <changeSet id="004-verify" author="louie-kury">
+        <customChange class="com.louiekury.pet.migration.RegistrationVerifyV1"/>
+    </changeSet>
+</databaseChangeLog>
