@@ -3,9 +3,10 @@ package com.louiekury.pet.registration.application;
 import com.louiekury.pet.registration.application.model.PetResult;
 import com.louiekury.pet.registration.application.model.RegisterPetCommand;
 import com.louiekury.pet.registration.application.port.out.InsertPetPort;
-import com.louiekury.pet.registration.application.port.out.LoadPetSpeciesPort;
+import com.louiekury.pet.registration.application.port.out.LoadPetBreedPort;
 import com.louiekury.pet.registration.application.service.RegisterPetService;
 import com.louiekury.pet.registration.domain.PetSpecies;
+import com.louiekury.pet.registration.domain.PetBreed;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.math.BigDecimal;
@@ -13,7 +14,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,17 +31,15 @@ import static org.mockito.Mockito.*;
 class RegisterPetServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-11-22T15:30:00Z");
-    private LoadPetSpeciesPort species;
+    private LoadPetBreedPort breeds;
     private InsertPetPort insert;
     private RegisterPetService service;
 
     @BeforeEach
     void setUp() {
-        species = mock(LoadPetSpeciesPort.class);
+        breeds = mock(LoadPetBreedPort.class);
         insert = mock(InsertPetPort.class);
-        service = new RegisterPetService(species, insert, Clock.fixed(NOW, ZoneOffset.UTC));
-        when(species.findById("dog")).thenReturn(Optional.of(
-            new PetSpecies("dog", "강아지", "DOG", true, Map.of("poodle", "푸들"))));
+        service = new RegisterPetService(breeds, insert, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -56,11 +54,14 @@ class RegisterPetServiceTest {
         assertThat(result.getCreatedAt()).isEqualTo(NOW);
         assertThat(result.getUpdatedAt()).isEqualTo(NOW);
         verify(insert).insert(result, null);
+        verifyNoInteractions(breeds);
     }
 
     @Test
     @DisplayName("전체 기본정보와 품종을 등록하면 입력값과 기준 명칭이 결과에 반영된다")
     void returnsEnteredFieldsAndResolvedBreed() {
+        when(breeds.findBySpeciesAndId(PetSpecies.DOG, "poodle"))
+            .thenReturn(Optional.of(new PetBreed(PetSpecies.DOG, "poodle", "푸들")));
         PetResult result = service.register(RegisterPetCommand.of("루이", "dog", "poodle", null,
             LocalDate.of(2023, 5, 1), "FEMALE", false, new BigDecimal("5.123"), true, "request-1"));
         assertThat(result.getBreed().getName()).isEqualTo("푸들");
@@ -94,24 +95,37 @@ class RegisterPetServiceTest {
     @DisplayName("다른 종의 품종을 보내면 저장하지 않는다")
     void rejectsBreedOutsideSelectedSpecies() {
         assertCode(() -> service.register(command("other-breed", null, null, null)), ErrorCode.VALIDATION_ERROR);
+        verify(breeds).findBySpeciesAndId(PetSpecies.DOG, "other-breed");
         verifyNoInteractions(insert);
     }
 
     @Test
-    @DisplayName("없는 종은 등록하지 않는다")
-    void rejectsMissingSpecies() {
-        when(species.findById("dog")).thenReturn(Optional.empty());
-        assertCode(() -> service.register(command(null, null, null, null)), ErrorCode.VALIDATION_ERROR);
-        verifyNoInteractions(insert);
+    @DisplayName("품종을 지정하지 않으면 기준 데이터 조회 장애와 무관하게 enum 종으로 등록한다")
+    void registersWithoutConsultingBreedDatabase() {
+        when(breeds.findBySpeciesAndId(any(), anyString()))
+            .thenThrow(new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        PetResult result = service.register(command(null, null, null, null));
+        assertThat(result.getSpecies().getSpeciesId()).isEqualTo("dog");
+        assertThat(result.getSpecies().getName()).isEqualTo("강아지");
+        verifyNoInteractions(breeds);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"DOG-INACTIVE", "RABBIT"})
-    @DisplayName("비활성 종 또는 지원하지 않는 종은 등록하지 않는다")
-    void rejectsUnavailableSpecies(String kind) {
-        when(species.findById("dog")).thenReturn(Optional.of(new PetSpecies("dog", "동물",
-            kind.equals("DOG-INACTIVE") ? "DOG" : "RABBIT", !kind.equals("DOG-INACTIVE"), Map.of())));
-        assertCode(() -> service.register(command(null, null, null, null)), ErrorCode.VALIDATION_ERROR);
+    @ValueSource(strings = {"DOG", "CAT", "rabbit"})
+    @DisplayName("종 enum 외부 ID 이외의 별칭은 저장하지 않는다")
+    void rejectsUnsupportedSpeciesIdentifiers(String id) {
+        assertCode(() -> service.register(RegisterPetCommand.of("루이", id, null, null, null,
+            "MALE", null, null, null, null)), ErrorCode.VALIDATION_ERROR);
+        verifyNoInteractions(breeds);
+        verifyNoInteractions(insert);
+    }
+
+    @Test
+    @DisplayName("품종 조회 장애는 품종 미상 등록으로 바꾸지 않고 실패시킨다")
+    void preservesBreedLookupFailure() {
+        when(breeds.findBySpeciesAndId(PetSpecies.DOG, "poodle"))
+            .thenThrow(new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        assertCode(() -> service.register(command("poodle", null, null, null)), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
         verifyNoInteractions(insert);
     }
 

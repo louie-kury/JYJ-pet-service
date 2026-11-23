@@ -59,6 +59,13 @@ public final class MongoRegistrationSchema {
         }
     }
 
+    /** 현재 앱은 종을 enum으로 관리한다. V1의 검증 의미는 위 메서드에 그대로 보존한다. */
+    public static void verifyCurrentRegistrationSchema(MongoDatabase database) {
+        verifyIndex(database, "pets", "registration_request_key_unique",
+            new Document("registration.requestKey", 1),
+            new Document("registration.requestKey", new Document("$type", "string")));
+    }
+
     public static void verifyCompletedHistory(MongoDatabase database) {
         for (String id : CHANGE_IDS) {
             List<Document> records = database.getCollection("DATABASECHANGELOG")

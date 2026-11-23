@@ -26,6 +26,6 @@ public class MongoMigrationReadiness implements SmartInitializingSingleton {
 
     public static void verify(MongoDatabase database) {
         MongoRegistrationSchema.verifyCompletedHistory(database);
-        MongoRegistrationSchema.verifyRegistrationSchema(database);
+        MongoRegistrationSchema.verifyCurrentRegistrationSchema(database);
     }
 }

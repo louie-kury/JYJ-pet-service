@@ -2,16 +2,13 @@ package com.louiekury.pet.registration.adapter.in.web;
 
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
 import com.louiekury.pet.registration.application.port.out.InsertPetPort;
-import com.louiekury.pet.registration.application.port.out.LoadPetSpeciesPort;
+import com.louiekury.pet.registration.application.port.out.LoadPetBreedPort;
 import com.louiekury.pet.registration.application.service.RegisterPetService;
-import com.louiekury.pet.registration.domain.PetSpecies;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,13 +33,33 @@ class PetRegistrationWebTest {
     @BeforeEach
     void setUp() {
         insert = mock(InsertPetPort.class);
-        LoadPetSpeciesPort species = mock(LoadPetSpeciesPort.class);
-        when(species.findById("dog")).thenReturn(Optional.of(
-            new PetSpecies("dog", "강아지", "DOG", true, Map.of())));
-        RegisterPetService service = new RegisterPetService(species, insert,
+        LoadPetBreedPort breeds = mock(LoadPetBreedPort.class);
+        RegisterPetService service = new RegisterPetService(breeds, insert,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetRegistrationController(service))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @Test
+    @DisplayName("고양이 enum의 외부 ID와 표시 이름을 기존 응답 구조로 반환한다")
+    void preservesCatResponseContract() throws Exception {
+        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"루이\",\"speciesId\":\"cat\",\"sex\":\"MALE\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.species.speciesId").value("cat"))
+            .andExpect(jsonPath("$.data.species.name").value("고양이"))
+            .andExpect(jsonPath("$.data.species.code").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DOG", "CAT", "rabbit"})
+    @DisplayName("API는 enum 이름이나 미지원 종을 외부 ID 별칭으로 허용하지 않는다")
+    void rejectsSpeciesAliases(String speciesId) throws Exception {
+        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"루이\",\"speciesId\":\"" + speciesId + "\",\"sex\":\"MALE\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        verifyNoInteractions(insert);
     }
 
     @Test

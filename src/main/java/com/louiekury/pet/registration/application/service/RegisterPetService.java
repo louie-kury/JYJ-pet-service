@@ -4,9 +4,9 @@ import com.louiekury.pet.registration.application.model.PetResult;
 import com.louiekury.pet.registration.application.model.RegisterPetCommand;
 import com.louiekury.pet.registration.application.port.in.RegisterPetUseCase;
 import com.louiekury.pet.registration.application.port.out.InsertPetPort;
-import com.louiekury.pet.registration.application.port.out.LoadPetSpeciesPort;
+import com.louiekury.pet.registration.application.port.out.LoadPetBreedPort;
 import com.louiekury.pet.registration.domain.Pet;
-import com.louiekury.pet.registration.domain.PetSpecies;
+import com.louiekury.pet.registration.domain.PetBreed;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RegisterPetService implements RegisterPetUseCase {
 
-    private final LoadPetSpeciesPort speciesPort;
+    private final LoadPetBreedPort breedPort;
     private final InsertPetPort insertPort;
     private final Clock clock;
 
@@ -39,13 +39,14 @@ public class RegisterPetService implements RegisterPetUseCase {
         if (pet.getProfileMediaId() != null) {
             throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
         }
-        PetSpecies species = speciesPort.findById(pet.getSpeciesId())
-            .filter(PetSpecies::isSupported)
-            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
-        if (pet.getBreedId() != null && species.findBreedName(pet.getBreedId()).isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        PetBreed breed = null;
+        if (pet.getBreedId() != null) {
+            breed = breedPort.findBySpeciesAndId(pet.getSpecies(), pet.getBreedId())
+                .filter(found -> found.getSpecies() == pet.getSpecies()
+                    && found.getBreedId().equals(pet.getBreedId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
         }
-        PetResult result = PetResult.from(pet, species, now, today);
+        PetResult result = PetResult.from(pet, breed, now, today);
         insertPort.insert(result, key);
         return result;
     }

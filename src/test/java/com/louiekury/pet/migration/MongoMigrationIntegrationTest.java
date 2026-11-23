@@ -1,6 +1,7 @@
 package com.louiekury.pet.migration;
 
 import com.louiekury.pet.global.config.MongoMigrationReadiness;
+import com.louiekury.pet.global.persistence.MongoRegistrationSchema;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -229,24 +230,45 @@ class MongoMigrationIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"missing-history", "inactive-species", "held-lock", "missing-species-index"})
-    @DisplayName("이력·활성 종·해제된 락·종 고유 인덱스 중 하나라도 없으면 앱 준비 검사를 실패시킨다")
+    @ValueSource(strings = {"missing-history", "held-lock"})
+    @DisplayName("완료 이력이 없거나 마이그레이션 락이 잡혀 있으면 앱 준비 검사를 실패시킨다")
     void readinessRequiresEveryPrerequisite(String missing) throws Exception {
         MongoDatabase database = freshDatabase();
         assertSuccess(run("migrate", database));
         switch (missing) {
             case "missing-history" -> database.getCollection("DATABASECHANGELOG")
                 .deleteOne(new Document("id", "004-verify"));
-            case "inactive-species" -> database.getCollection("pet_species")
-                .updateOne(new Document("_id", "dog"), new Document("$set", new Document("active", false)));
             case "held-lock" -> database.getCollection("DATABASECHANGELOGLOCK")
                 .updateOne(new Document(), new Document("$set", new Document("locked", true)));
-            case "missing-species-index" -> database.getCollection("pet_species").dropIndex("species_code_unique");
             default -> throw new AssertionError(missing);
         }
         List<Document> history = history(database);
         assertThatThrownBy(() -> MongoMigrationReadiness.verify(database)).isInstanceOf(RuntimeException.class);
         assertThat(history(database)).isEqualTo(history);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"absent-catalog", "inactive-species", "missing-species-index"})
+    @DisplayName("현재 앱은 종 enum을 사용하므로 과거 종 seed와 활성 상태에 의존하지 않고 읽기만 한다")
+    void currentReadinessDoesNotRequireSpeciesCatalog(String oldState) throws Exception {
+        MongoDatabase database = freshDatabase();
+        assertSuccess(run("migrate", database));
+        switch (oldState) {
+            case "absent-catalog" -> database.getCollection("pet_species").drop();
+            case "inactive-species" -> database.getCollection("pet_species")
+                .updateOne(new Document("_id", "dog"), new Document("$set", new Document("active", false)));
+            case "missing-species-index" -> database.getCollection("pet_species").dropIndex("species_code_unique");
+            default -> throw new AssertionError(oldState);
+        }
+        List<String> collections = database.listCollectionNames().into(new ArrayList<>());
+        List<Document> beforeHistory = history(database);
+        List<Document> beforeSpecies = database.getCollection("pet_species").find().into(new ArrayList<>());
+        MongoMigrationReadiness.verify(database);
+        assertThat(history(database)).isEqualTo(beforeHistory);
+        assertThat(database.listCollectionNames().into(new ArrayList<>())).containsExactlyInAnyOrderElementsOf(collections);
+        assertThat(database.getCollection("pet_species").find().into(new ArrayList<>())).isEqualTo(beforeSpecies);
+        assertThatThrownBy(() -> MongoRegistrationSchema.verifyRegistrationSchema(database))
+            .as("과거 V1 검증은 기존 계약을 유지한다").isInstanceOf(RuntimeException.class);
     }
 
     private static List<Document> history(MongoDatabase database) {

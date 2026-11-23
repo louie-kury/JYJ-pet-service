@@ -1,7 +1,7 @@
 package com.louiekury.pet.registration.application.model;
 
 import com.louiekury.pet.registration.domain.Pet;
-import com.louiekury.pet.registration.domain.PetSpecies;
+import com.louiekury.pet.registration.domain.PetBreed;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,12 +29,11 @@ public class PetResult {
     private final Instant createdAt;
     private final Instant updatedAt;
 
-    public static PetResult from(Pet pet, PetSpecies species, Instant createdAt, LocalDate today) {
+    public static PetResult from(Pet pet, PetBreed breed, Instant createdAt, LocalDate today) {
         Period age = pet.getBirth() == null ? null : Period.between(pet.getBirth(), today);
         return PetResult.builder().petId(pet.getPetId()).name(pet.getName())
-            .species(new Species(species.getSpeciesId(), species.getName()))
-            .breed(pet.getBreedId() == null ? null
-                : new Breed(pet.getBreedId(), species.findBreedName(pet.getBreedId()).orElseThrow()))
+            .species(new Species(pet.getSpecies().getSpeciesId(), pet.getSpecies().getName()))
+            .breed(breed == null ? null : new Breed(breed.getBreedId(), breed.getName()))
             .birth(pet.getBirth()).age(age == null ? null : new Age(age.getYears(), age.getMonths()))
             .sex(pet.getSex()).isNeutered(pet.getIsNeutered()).weight(pet.getWeight())
             .basicVaccinationCompleted(pet.getBasicVaccinationCompleted())

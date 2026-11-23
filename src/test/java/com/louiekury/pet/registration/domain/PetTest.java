@@ -22,6 +22,7 @@ class PetTest {
     void minimumInputPreservesUnknownValues() {
         Pet pet = create("  루이  ", null, null);
         assertThat(pet.getName()).isEqualTo("루이");
+        assertThat(pet.getSpecies()).isSameAs(PetSpecies.DOG);
         assertThat(pet.getPetId()).isNotBlank();
         assertThat(pet.getBirth()).isNull();
         assertThat(pet.getWeight()).isNull();

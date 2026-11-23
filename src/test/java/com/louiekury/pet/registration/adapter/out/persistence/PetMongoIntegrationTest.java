@@ -18,7 +18,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -108,7 +107,7 @@ class PetMongoIntegrationTest {
     @DisplayName("나노초 Clock에서도 최초 응답과 실제 Mongo 감사 시각은 정확히 일치한다")
     void responseAuditTimesExactlyMatchStoredMilliseconds() {
         RegisterPetService service = new RegisterPetService(
-            id -> Optional.of(new PetSpecies("dog", "강아지", "DOG", true, Map.of())), adapter,
+            (species, breedId) -> Optional.empty(), adapter,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00.123456789Z"), ZoneOffset.UTC));
         PetResult result = service.register(RegisterPetCommand.of("루이", "dog", null, null,
             null, "MALE", null, null, null, null));
@@ -200,17 +199,41 @@ class PetMongoIntegrationTest {
     }
 
     @Test
-    @DisplayName("실제 종 문서에서 활성 품종만 읽고 없는 종은 부재로 반환한다")
-    void readsSpeciesAndOnlyActiveBreeds() {
+    @DisplayName("기존 카탈로그의 종 메타데이터와 무관하게 선택 종의 활성 품종만 조회한다")
+    void readsOnlyActiveBreedsWithinRequestedSpecies() {
         template.getCollection("pet_species").insertOne(new Document("_id", "dog")
-            .append("name", "강아지").append("code", "DOG").append("active", true)
+            .append("name", "변경된 이름").append("code", "OUTDATED").append("active", false)
             .append("breeds", List.of(new Document("breedId", "poodle").append("name", "푸들").append("active", true),
                 new Document("breedId", "inactive").append("name", "미사용").append("active", false))));
-        var species = new PetSpeciesPersistenceAdapter(template).findById("dog").orElseThrow();
-        assertThat(species.isSupported()).isTrue();
-        assertThat(species.findBreedName("poodle")).contains("푸들");
-        assertThat(species.findBreedName("inactive")).isEmpty();
-        assertThat(new PetSpeciesPersistenceAdapter(template).findById("absent")).isEmpty();
+        var breeds = new PetBreedPersistenceAdapter(template);
+        var breed = breeds.findBySpeciesAndId(PetSpecies.DOG, "poodle").orElseThrow();
+        assertThat(breed.getSpecies()).isSameAs(PetSpecies.DOG);
+        assertThat(breed.getName()).isEqualTo("푸들");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"inactive", "missing", "wrong-species"})
+    @DisplayName("없는 품종·비활성 품종·다른 종의 품종은 조회 결과로 제공하지 않는다")
+    void rejectsUnavailableBreedWithinCatalog(String condition) {
+        template.getCollection("pet_species").insertOne(new Document("_id", "dog")
+            .append("breeds", List.of(
+                new Document("breedId", "poodle").append("name", "푸들").append("active", true),
+                new Document("breedId", "inactive").append("name", "미사용").append("active", false))));
+        PetSpecies species = condition.equals("wrong-species") ? PetSpecies.CAT : PetSpecies.DOG;
+        String breedId = condition.equals("wrong-species") ? "poodle" : condition;
+        assertThat(new PetBreedPersistenceAdapter(template).findBySpeciesAndId(species, breedId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("중복 품종 데이터는 임의 선택하거나 정상 부재로 숨기지 않고 조회 오류로 알린다")
+    void rejectsAmbiguousBreedCatalog() {
+        template.getCollection("pet_species").insertOne(new Document("_id", "dog")
+            .append("breeds", List.of(
+                new Document("breedId", "poodle").append("name", "첫 품종").append("active", true),
+                new Document("breedId", "poodle").append("name", "다른 품종").append("active", true))));
+        assertThatThrownBy(() -> new PetBreedPersistenceAdapter(template).findBySpeciesAndId(PetSpecies.DOG, "poodle"))
+            .isInstanceOfSatisfying(BusinessException.class,
+                exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
     }
 
     private void createKeyIndex() {
@@ -219,22 +242,24 @@ class PetMongoIntegrationTest {
                 .partialFilterExpression(new Document("registration.requestKey", new Document("$type", "string"))));
     }
 
-    @Test
-    @DisplayName("24자리 16진수로 생긴 종 ID도 문자열 그대로 조회한다")
-    void treatsSpeciesIdentifierAsOpaqueString() {
-        String speciesId = "507f1f77bcf86cd799439011";
-        template.getCollection("pet_species").insertOne(new Document("_id", speciesId)
-            .append("name", "고양이").append("code", "CAT").append("active", true)
-            .append("breeds", List.of()));
-        PetSpecies species = new PetSpeciesPersistenceAdapter(template).findById(speciesId).orElseThrow();
-        assertThat(species.getSpeciesId()).isEqualTo(speciesId);
-        assertThat(species.isSupported()).isTrue();
+    @ParameterizedTest
+    @ValueSource(strings = {"dog", "cat"})
+    @DisplayName("종 기준 문서가 없어도 등록하며 enum 종 ID는 기존 문자열 그대로 저장한다")
+    void storesCanonicalEnumIdentifierWithoutCatalog(String speciesId) {
+        RegisterPetService service = new RegisterPetService(new PetBreedPersistenceAdapter(template), adapter,
+            Clock.fixed(CREATED, ZoneOffset.UTC));
+        PetResult result = service.register(RegisterPetCommand.of("루이", speciesId, null, null,
+            null, "MALE", null, null, null, null));
+        Document stored = template.getCollection("pets").find(new Document("_id", result.getPetId())).first();
+        assertThat(stored.getString("speciesId")).isEqualTo(speciesId);
+        assertThat(result.getSpecies().getName()).isEqualTo(speciesId.equals("dog") ? "강아지" : "고양이");
+        assertThat(template.getCollection("pet_species").countDocuments()).isZero();
     }
 
     private static PetResult result(String name) {
         LocalDate today = LocalDate.of(2026, 11, 23);
         Pet pet = Pet.create(name, "dog", null, null, LocalDate.of(2024, 2, 29), "MALE",
             null, new BigDecimal("5.123"), null, today);
-        return PetResult.from(pet, new PetSpecies("dog", "강아지", "DOG", true, Map.of()), CREATED, today);
+        return PetResult.from(pet, null, CREATED, today);
     }
 }

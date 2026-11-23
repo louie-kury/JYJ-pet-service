@@ -12,7 +12,7 @@ public class Pet {
 
     private final String petId;
     private final String name;
-    private final String speciesId;
+    private final PetSpecies species;
     private final String breedId;
     private final String profileMediaId;
     private final LocalDate birth;
@@ -21,12 +21,12 @@ public class Pet {
     private final BigDecimal weight;
     private final Boolean basicVaccinationCompleted;
 
-    private Pet(String name, String speciesId, String breedId, String profileMediaId,
+    private Pet(String name, PetSpecies species, String breedId, String profileMediaId,
             LocalDate birth, String sex, Boolean isNeutered, BigDecimal weight,
             Boolean basicVaccinationCompleted) {
         this.petId = UUID.randomUUID().toString();
         this.name = name;
-        this.speciesId = speciesId;
+        this.species = species;
         this.breedId = breedId;
         this.profileMediaId = profileMediaId;
         this.birth = birth;
@@ -42,7 +42,7 @@ public class Pet {
         String normalizedName = name == null ? null : name.strip();
         require(normalizedName != null && !normalizedName.isBlank()
             && normalizedName.codePointCount(0, normalizedName.length()) <= 50);
-        require(speciesId != null && !speciesId.isBlank());
+        PetSpecies species = PetSpecies.fromId(speciesId);
         require(breedId == null || !breedId.isBlank());
         require(profileMediaId == null || !profileMediaId.isBlank());
         require("MALE".equals(sex) || "FEMALE".equals(sex));
@@ -51,8 +51,12 @@ public class Pet {
         require(weight == null || (weight.signum() > 0
             && weight.compareTo(new BigDecimal("200")) <= 0
             && weight.stripTrailingZeros().scale() <= 3));
-        return new Pet(normalizedName, speciesId, breedId, profileMediaId, birth,
+        return new Pet(normalizedName, species, breedId, profileMediaId, birth,
             sex, isNeutered, weight, basicVaccinationCompleted);
+    }
+
+    public String getSpeciesId() {
+        return species.getSpeciesId();
     }
 
     private static void require(boolean condition) {
