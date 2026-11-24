@@ -11,6 +11,7 @@ public enum ErrorCode {
     MEDIA_SERVICE_UNAVAILABLE("프로필 미디어 연결을 아직 사용할 수 없습니다."),
     REFERENCE_DATA_UNAVAILABLE("종·품종 기준 데이터를 조회할 수 없습니다."),
     PERSISTENCE_UNAVAILABLE("반려동물을 저장할 수 없습니다."),
+    PET_QUERY_UNAVAILABLE("반려동물 목록을 조회할 수 없습니다."),
     IDEMPOTENCY_CONFLICT("이미 사용된 등록 요청 키입니다."),
     UNAUTHORIZED("인증이 필요합니다."),
     FORBIDDEN("접근 권한이 없습니다."),

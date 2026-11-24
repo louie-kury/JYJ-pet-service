@@ -13,7 +13,7 @@ public final class ErrorCodeHttpMapper {
             case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case IDEMPOTENCY_CONFLICT -> HttpStatus.CONFLICT;
             case MEDIA_SERVICE_UNAVAILABLE, REFERENCE_DATA_UNAVAILABLE,
-                PERSISTENCE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+                PERSISTENCE_UNAVAILABLE, PET_QUERY_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;

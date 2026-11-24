@@ -219,11 +219,12 @@ class MongoMigrationIntegrationTest {
         assertThat(row).isNotNull();
         database.getCollection("DATABASECHANGELOG").updateOne(new Document("_id", row.get("_id")),
             new Document("$set", new Document("md5sum", "9:00000000000000000000000000000000")));
+        List<Document> beforeRetry = history(database);
         Run failed = run("migrate", database);
         assertThat(failed.exitCode()).as(failed.output()).isNotZero();
         assertThat(failed.output()).contains("MIGRATION_FAILED")
             .doesNotContain("MIGRATION_COMPLETE");
-        assertThat(history(database)).hasSize(6);
+        assertThat(history(database)).containsExactlyInAnyOrderElementsOf(beforeRetry);
     }
 
     @Test
@@ -305,7 +306,7 @@ class MongoMigrationIntegrationTest {
     private static void assertPrepared(MongoDatabase database) {
         List<Document> rows = history(database);
         assertThat(rows).extracting(row -> row.getString("id"))
-            .containsExactlyInAnyOrder("000-registration-key-type", "000-registration-key-validation", "001-preflight", "002-indexes", "003-seed", "004-verify");
+            .containsExactlyInAnyOrder("000-registration-key-type", "000-registration-key-validation", "001-preflight", "002-indexes", "003-seed", "004-verify", "005-pet-list-index");
         assertThat(rows).allSatisfy(row -> {
             assertThat(row.getString("author")).isEqualTo("louie-kury");
             assertThat(row.getString("md5sum")).isNotBlank();
@@ -317,6 +318,12 @@ class MongoMigrationIntegrationTest {
             assertThat(index.getBoolean("unique")).isTrue();
             assertThat(index.get("key")).isEqualTo(new Document("registration.requestKey", 1));
             assertThat(index.get("partialFilterExpression")).isEqualTo(new Document("registration.requestKey", new Document("$type", "string")));
+        });
+        assertThat(indexes).anySatisfy(index -> {
+            assertThat(index.getString("name")).isEqualTo("pet_owner_active_created_id");
+            assertThat(index.get("key")).isEqualTo(new Document("caregiverId", 1).append("deletedAt", 1)
+                .append("createdAt", -1).append("_id", -1));
+            assertThat(index.getBoolean("unique", false)).isFalse();
         });
         assertThat(database.getCollection("pet_species").countDocuments(new Document("code", "DOG").append("active", true))).isEqualTo(1);
         assertThat(database.getCollection("pet_species").countDocuments(new Document("code", "CAT").append("active", true))).isEqualTo(1);

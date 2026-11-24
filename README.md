@@ -1,6 +1,6 @@
 # louie-kury-pet-service
 
-루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록 API를 제공합니다. 이번 범위는 무인증 등록이며 회원·로그인·소유자 연결, 목록·상세 조회·수정·삭제와 배포는 후속 작업입니다.
+루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록과 목록 조회 API를 제공합니다. 현재 등록·목록은 회원 연결 전 임시 무인증 방식이며 회원·로그인·소유자 연결, 상세 조회·수정·삭제와 배포는 후속 작업입니다.
 
 ## 개발 환경
 
@@ -90,11 +90,30 @@ curl -i -X POST http://localhost:8080/api/pets \
 
 선택 헤더 `Idempotency-Key`는 ASCII 영숫자·`-`·`_`·`.`·`:`의 1~128자입니다. 현재 익명 등록 전체에서 같은 키는 입력이 같거나 달라도 `409 IDEMPOTENCY_CONFLICT`이며 기존 ID·응답을 재전달하지 않습니다. 무키 요청은 각각 새 동물이므로 응답 유실 후 무키 재시도의 중복을 막지 않습니다. 이는 공통 API 초안의 사용자별 결과 재전달과 다른 임시 정책입니다.
 
+## 반려동물 목록 조회
+
+`GET /api/pets`는 회원 연결 전 임시로 인증 없이 제공합니다. **누구나 소유자 미연결 동물의 목록을 조회할 수 있으며 본인 전용 목록이 아닙니다.** `caregiverId`가 null이거나 필드가 없는 동물 중 `deletedAt`이 null이거나 없는 동물만 반환합니다. 소유자가 지정된 동물과 소프트 삭제된 동물은 목록과 전체 건수에서 제외합니다. 요청·임의 헤더로 조회 소유자를 지정하지 않습니다. 이 예외는 [ADR 0003](docs/adr/0003-registration-before-member-linking.md)의 이슈 #9 결정이며 다른 조회·수정·삭제 API에 적용하지 않습니다.
+
+```sh
+curl -i 'http://localhost:8080/api/pets?page=0&size=4'
+```
+
+- `page`는 0부터 시작하며 기본값은 0입니다. `size`는 기본 4, 허용 범위는 1~100입니다. 음수 page, 범위 밖 size, 정수로 변환할 수 없는 값은 `400 VALIDATION_ERROR`입니다.
+- `createdAt` 내림차순, 같은 시각이면 `_id` 내림차순으로 조회합니다. 성공은 200이며 `data`에 `content`, `page`, `size`, `totalElements`, `totalPages`, `hasNext`를 반환합니다. 결과가 없거나 범위를 넘는 페이지면 `content`는 빈 배열입니다. 목록과 건수는 각각의 조회 시점 결과이므로 동시 변경에 대한 단일 스냅샷을 보장하지 않습니다.
+- 항목은 `petId`, `name`, `species`, `breed`, `profileMedia`, `age`, `sex`를 제공합니다. 종 표시는 enum 기준이며 품종은 현재 기준 데이터의 명칭을 사용합니다. 비활성 품종도 표시하고, 기준 데이터에서 사라진 품종은 ID가 일치하는 등록 스냅샷의 품종명으로 보완합니다. 표시할 명칭이 없으면 `503 REFERENCE_DATA_UNAVAILABLE`입니다.
+- 나이는 조회일의 한국날짜를 기준으로 생일에서 만 년·잔여 개월을 다시 계산합니다. 생일이 없으면 `age:null`, 품종이 없으면 `breed:null`입니다. 등록 당시의 나이 스냅샷을 재사용하지 않습니다.
+- 현재 프로필 미연결 데이터는 `profileMedia:null`입니다. 페이지에 `profileMediaId`가 있는 데이터가 포함되면 미디어 연동 전까지 `503 MEDIA_SERVICE_UNAVAILABLE`로 거부합니다. 파일 URL이나 정상 연결 결과를 임의 생성하지 않습니다.
+- DB 조회 실패나 잘못된 저장 데이터는 정상 빈 목록으로 바꾸지 않고 `503 PET_QUERY_UNAVAILABLE` 등 해당 오류로 반환합니다. 내부 문서·등록 요청 키는 목록에 노출하지 않습니다.
+
+인증 도입 후에는 검증된 호출자의 ID로 소유자 조건을 전환하고 등록의 소유자 저장·접근 권한을 함께 연결해야 합니다. 기존 null 소유자 동물의 귀속은 별도 증명·이관 정책으로 처리하며 최초 로그인 사용자에게 자동 부여하지 않습니다. 현재 목록 API의 실제 서버·MongoDB 검증과 인증·미디어 연동 검증은 수행하지 않았습니다.
+
 ## MongoDB 변경 관리
 
 마이그레이션은 앱과 분리된 `src/migration` 소스·의존성에서 실행하며 앱 기동 시 자동 적용하지 않습니다. `src/migration/resources/db/mongodb/changelog.xml`이 V1의 사전 검사 → 인덱스 → 기본 종 → 최종 검사 네 변경셋을 실행하고 `DATABASECHANGELOG`에 이력을 남깁니다. 동시 실행은 `DATABASECHANGELOGLOCK`으로 직렬화하고 락 획득 대기는 최대 1분입니다.
 
 기존 V1은 빈 DB에 인덱스와 `dog`/`DOG`·`cat`/`CAT` 문서를 만들고, 기존 JS 실행 DB도 검증 후 이력을 생성합니다. 적용된 XML·V1 검증 로직은 이력 보존을 위해 그대로 유지하며 enum 전환용 새 마이그레이션은 추가하지 않습니다. V1의 종 문서는 기존 준비 절차의 산출물이며 현재 종의 기준은 enum입니다. 기존 동물·품종은 덮어쓰지 않습니다. 초기 품종 배열은 비어 있으므로 `breedId`를 생략/null로 등록합니다. 품종을 사용할 때는 `pet_species`의 `dog`/`cat` 문서 `breeds`에 검토된 `breedId`, `name`, `active` 값을 준비합니다.
+
+목록용 새 변경셋 `v002-pet-list-index.xml`은 `caregiverId`, `deletedAt`, `createdAt` 내림차순, `_id` 내림차순의 복합 인덱스 `pet_owner_active_created_id`를 추가합니다. 기존 V1 이력과 데이터를 변경하지 않으며, 앱이 인덱스를 자동 생성하지 않으므로 실행 전 `mongoMigrate`로 적용합니다. 현재 DB에 실제 적용했는지는 별도 확인이 필요합니다.
 
 키 인덱스는 `registration_request_key_unique`, 종 code 인덱스는 `species_code_unique`입니다. 문자열 requestKey만 partial unique 대상이며 무키 문서는 제외합니다. V1 최초 적용 시 기존 타입·중복·ID/code 충돌·인덱스 불일치는 자동 수정하지 않고 실패합니다. 예전 `prepare-registration.js`·`verify-registration.js`는 마이그레이션으로 대체됐습니다.
 
@@ -132,7 +151,7 @@ curl -i -X POST http://localhost:8080/api/pets \
 
 MySQL 연결의 `connectionTimeZone`은 숫자 오프셋 `+09:00`을 사용하고 `forceConnectionTimeZoneToSession=true`로 세션에 적용합니다. MySQL의 이름 기반 시간대 테이블에 의존하지 않기 위한 설정입니다. Hibernate는 `hibernate.type.java_time_use_direct_jdbc=true`로 `LocalDateTime`을 직접 전달해 JVM 기본 시간대에 따른 벽시각 변환을 피합니다. 업무·API·로그의 지역 시간대 기준은 계속 `Asia/Seoul`입니다.
 
-로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록은 사용자 요청에 따라 무인증으로 허용하며, 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
+로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록과 소유자 미연결 동물의 목록은 사용자 요청에 따라 임시 무인증으로 허용하며, 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
 
 ## 관련 문서
 
