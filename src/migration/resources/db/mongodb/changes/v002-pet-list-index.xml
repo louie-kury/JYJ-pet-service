@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:mongo="http://www.liquibase.org/xml/ns/mongodb"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd http://www.liquibase.org/xml/ns/mongodb https://www.liquibase.org/xml/ns/mongodb/liquibase-mongodb-latest.xsd">
+    <changeSet id="005-pet-list-index" author="louie-kury">
+        <mongo:createIndex collectionName="pets">
+            <mongo:keys>{"caregiverId":1,"deletedAt":1,"createdAt":-1,"_id":-1}</mongo:keys>
+            <mongo:options>{"name":"pet_owner_active_created_id"}</mongo:options>
+        </mongo:createIndex>
+    </changeSet>
+</databaseChangeLog>

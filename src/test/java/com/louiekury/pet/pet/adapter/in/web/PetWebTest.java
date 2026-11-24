@@ -4,6 +4,7 @@ import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
 import com.louiekury.pet.pet.application.port.out.CreatePetPort;
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
 import com.louiekury.pet.pet.application.createpet.CreatePetService;
+import com.louiekury.pet.pet.application.getpets.GetPetsUseCase;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;
@@ -36,7 +37,7 @@ class PetWebTest {
         GetPetBreedPort breeds = mock(GetPetBreedPort.class);
         CreatePetService service = new CreatePetService(breeds, insert,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00Z"), ZoneOffset.UTC));
-        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service)))
+        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class))))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 

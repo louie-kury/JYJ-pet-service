@@ -5,4 +5,5 @@
     <include file="changes/v000-registration-key-type.xml" relativeToChangelogFile="true"/>
     <include file="changes/v000-registration-key-validation.xml" relativeToChangelogFile="true"/>
     <include file="changes/v001-registration.xml" relativeToChangelogFile="true"/>
+    <include file="changes/v002-pet-list-index.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
