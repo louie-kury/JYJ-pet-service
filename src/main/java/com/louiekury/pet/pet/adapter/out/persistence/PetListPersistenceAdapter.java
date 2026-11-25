@@ -39,7 +39,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
             Query page = Query.query(owner).with(Sort.by(Sort.Direction.DESC, "createdAt", "_id"))
                 .skip(query.getOffset()).limit(query.getSize());
             page.fields().include("_id", "name", "speciesId", "breedId", "profileMediaId", "birth", "sex",
-                "registration.responseSnapshot.breed");
+                "registration.responseSnapshot.breed", "registration.responseSnapshot.species.speciesId");
             List<Document> pets = mongoTemplate.find(page, Document.class, "pets");
             Map<String, Document> catalogs = getBreedCatalogs(pets);
             return PetListPage.of(pets.stream().map(pet -> getPetData(pet, catalogs)).toList(), total);

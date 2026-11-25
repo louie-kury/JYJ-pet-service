@@ -26,13 +26,13 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     private final MongoTemplate mongo;
 
     @Override
-    public Optional<Data> find(String id) {
+    public Optional<Data> find(String id, boolean resolveBreedName) {
         try {
             Document doc = mongo.findOne(Query.query(eligible(id)), Document.class, "pets");
             if (doc == null) return Optional.empty();
             String species = doc.getString("speciesId");
             String breed = doc.getString("breedId");
-            String breedName = breedName(doc, species, breed);
+            String breedName = resolveBreedName ? breedName(doc, species, breed) : null;
             Object weight = doc.get("weight");
             BigDecimal decimal = weight == null ? null : ((Decimal128) weight).bigDecimalValue();
             String birth = doc.getString("birth");

@@ -48,7 +48,7 @@ class PetUpdateMongoIntegrationTest {
         mongo = new MongoTemplate(client, "pet_update_test_" + UUID.randomUUID().toString().replace("-", ""));
         var service = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo), new PetBreedPersistenceAdapter(mongo),
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
-        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
+        mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
@@ -147,6 +147,33 @@ class PetUpdateMongoIntegrationTest {
             .andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.code").value("REFERENCE_DATA_UNAVAILABLE"));
         assertThat(stored("pet-1")).isEqualTo(before);
+    }
+
+    @Test
+    void clearingBreedSucceedsEvenWhenOldCatalogIsMalformed() throws Exception {
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"),
+            new Document("$set", new Document("breedId", "breed-dog")));
+        mongo.getCollection("pet_species").insertOne(new Document("_id", "dog").append("breeds", java.util.List.of(
+            new Document("breedId", "breed-dog").append("name", "첫 품종"),
+            new Document("breedId", "breed-dog").append("name", "중복 품종"))));
+
+        mvc.perform(patch("/api/pets/pet-1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"breedId\":null}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.breed").doesNotExist());
+        assertThat(stored("pet-1").get("breedId")).isNull();
+    }
+
+    @Test
+    void listUsesSameSpeciesSnapshotWhenBreedIsMissingFromCatalog() {
+        Document snapshot = new Document("species", new Document("speciesId", "dog").append("name", "강아지"))
+            .append("breed", new Document("breedId", "old-breed").append("name", "이전 품종"));
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"),
+            new Document("$set", new Document("breedId", "old-breed")
+                .append("registration.responseSnapshot", snapshot)));
+
+        var page = new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4));
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getBreedName()).isEqualTo("이전 품종");
     }
 
     @Test

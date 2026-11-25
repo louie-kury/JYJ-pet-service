@@ -28,7 +28,9 @@ public class UpdatePetService implements UpdatePetUseCase {
     public PetResult updatePet(String id, Map<String, Object> changes) {
         if (changes.isEmpty()) throw new BusinessException(ErrorCode.EMPTY_UPDATE);
         for (int attempt = 0; attempt < 3; attempt++) {
-            UpdatePetPort.Data old = port.find(id).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+            boolean resolveBreedName = !changes.containsKey("breedId") && !changes.containsKey("speciesId");
+            UpdatePetPort.Data old = port.find(id, resolveBreedName)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
             Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
             if (!now.isAfter(old.updatedAt())) now = old.updatedAt().plusMillis(1);
             LocalDate today = now.atZone(ZoneId.of("Asia/Seoul")).toLocalDate();

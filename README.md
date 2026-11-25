@@ -1,6 +1,6 @@
 # louie-kury-pet-service
 
-루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록·목록 조회·수정 API를 제공합니다. 현재 이 기능들은 회원 연결 전 임시 무인증 방식이며 회원·로그인·소유자 연결, 상세 조회·삭제와 배포는 후속 작업입니다.
+루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록·목록 조회·수정 API를 제공합니다. 현재 이 기능들은 회원 연결 전 임시 무인증 방식이며 수정 API는 기본적으로 비활성화됩니다. 회원·로그인·소유자 연결, 상세 조회·삭제와 배포는 후속 작업입니다.
 
 ## 개발 환경
 
@@ -109,7 +109,14 @@ curl -i 'http://localhost:8080/api/pets?page=0&size=4'
 
 ## 반려동물 수정
 
-`PATCH /api/pets/{petId}`는 회원 연결 전 개발 환경에서 사용할 임시 무인증 API입니다. `caregiverId`와 `deletedAt`이 null이거나 없는 동물만 수정합니다. 소유자가 연결됐거나 삭제된 동물, 존재하지 않는 ID는 `404 NOT_FOUND`입니다. **ID를 아는 누구나 미연결 동물을 수정할 수 있으므로 실제 사용자 데이터나 외부 공개 환경에 사용하지 않습니다.**
+`PATCH /api/pets/{petId}`는 회원 연결 전 개발 환경에서 사용할 임시 무인증 API이며 기본적으로 비활성화됩니다. Spring `dev` 프로필과 `pet.anonymous-update.enabled=true` 설정을 모두 지정해야 경로가 활성화됩니다. 예를 들어 테스트 전용 환경에서 앱 실행 시 아래 환경변수를 설정합니다.
+
+```sh
+export SPRING_PROFILES_ACTIVE=dev
+export PET_ANONYMOUS_UPDATE_ENABLED=true
+```
+
+이 설정은 접근 인증이나 네트워크 격리를 제공하지 않습니다. 테스트 데이터와 접근이 제한된 개발 환경에서만 활성화하세요. `caregiverId`와 `deletedAt`이 null이거나 없는 동물만 수정합니다. 소유자가 연결됐거나 삭제된 동물, 존재하지 않는 ID는 `404 NOT_FOUND`입니다. **ID를 아는 누구나 미연결 동물을 수정할 수 있으므로 실제 사용자 데이터나 외부 공개 환경에 사용하지 않습니다.**
 
 ```sh
 curl -i -X PATCH 'http://localhost:8080/api/pets/<petId>' \
@@ -166,7 +173,7 @@ curl -i -X PATCH 'http://localhost:8080/api/pets/<petId>' \
 
 MySQL 연결의 `connectionTimeZone`은 숫자 오프셋 `+09:00`을 사용하고 `forceConnectionTimeZoneToSession=true`로 세션에 적용합니다. MySQL의 이름 기반 시간대 테이블에 의존하지 않기 위한 설정입니다. Hibernate는 `hibernate.type.java_time_use_direct_jdbc=true`로 `LocalDateTime`을 직접 전달해 JVM 기본 시간대에 따른 벽시각 변환을 피합니다. 업무·API·로그의 지역 시간대 기준은 계속 `Asia/Seoul`입니다.
 
-로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록과 소유자 미연결 동물의 목록·수정은 사용자 요청에 따라 임시 무인증으로 허용하며, 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
+로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록과 소유자 미연결 동물의 목록·수정은 사용자 요청에 따라 임시 무인증 방식이며 수정은 명시적으로 활성화해야 합니다. 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
 
 ## 관련 문서
 
