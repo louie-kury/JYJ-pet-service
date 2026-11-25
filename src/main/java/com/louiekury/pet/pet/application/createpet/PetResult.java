@@ -39,6 +39,17 @@ public class PetResult {
             .createdAt(createdAt).updatedAt(createdAt).build();
     }
 
+    public static PetResult updated(String id, String name, com.louiekury.pet.pet.domain.PetSpecies species,
+            String breedId, String breedName, LocalDate birth, Period age, String sex,
+            Boolean neutered, BigDecimal weight, Boolean vaccination, Instant createdAt, Instant updatedAt) {
+        return PetResult.builder().petId(id).name(name)
+            .species(new Species(species.getSpeciesId(), species.getName()))
+            .breed(breedId == null ? null : new Breed(breedId, breedName))
+            .birth(birth).age(age == null ? null : new Age(age.getYears(), age.getMonths()))
+            .sex(sex).isNeutered(neutered).weight(weight).basicVaccinationCompleted(vaccination)
+            .createdAt(createdAt).updatedAt(updatedAt).build();
+    }
+
     @Getter
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static class Species {

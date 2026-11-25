@@ -163,7 +163,8 @@ class PetListMongoIntegrationTest {
 
     private static Document withBreed(Document pet, String breedId, String name) {
         return pet.append("breedId", breedId).append("registration", new Document("responseSnapshot",
-            new Document("breed", new Document("breedId", breedId).append("name", name))));
+            new Document("species", new Document("speciesId", pet.getString("speciesId")))
+                .append("breed", new Document("breedId", breedId).append("name", name))));
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {

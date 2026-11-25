@@ -39,7 +39,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
             Query page = Query.query(owner).with(Sort.by(Sort.Direction.DESC, "createdAt", "_id"))
                 .skip(query.getOffset()).limit(query.getSize());
             page.fields().include("_id", "name", "speciesId", "breedId", "profileMediaId", "birth", "sex",
-                "registration.responseSnapshot.breed");
+                "registration.responseSnapshot.breed", "registration.responseSnapshot.species.speciesId");
             List<Document> pets = mongoTemplate.find(page, Document.class, "pets");
             Map<String, Document> catalogs = getBreedCatalogs(pets);
             return PetListPage.of(pets.stream().map(pet -> getPetData(pet, catalogs)).toList(), total);
@@ -101,6 +101,8 @@ public class PetListPersistenceAdapter implements GetPetsPort {
         }
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
+                && snapshot.get("species") instanceof Map<?, ?> savedSpecies
+                && getString(pet, "speciesId", false).equals(savedSpecies.get("speciesId"))
                 && snapshot.get("breed") instanceof Map<?, ?> breed
                 && breedId.equals(breed.get("breedId"))
                 && breed.get("name") instanceof String name && !name.isBlank()) {

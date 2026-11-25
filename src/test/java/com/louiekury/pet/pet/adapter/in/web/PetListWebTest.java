@@ -1,5 +1,7 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
+import com.louiekury.pet.pet.application.updatepet.UpdatePetUseCase;
+
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
 import com.louiekury.pet.pet.application.createpet.CreatePetUseCase;
 import com.louiekury.pet.pet.application.getpets.GetPetsQuery;
@@ -46,7 +48,7 @@ class PetListWebTest {
         GetPetsService service = new GetPetsService(pets,
             Clock.fixed(Instant.parse("2026-11-22T15:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(
-                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service)))
+                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class))))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
