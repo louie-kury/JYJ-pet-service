@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
@@ -26,12 +27,14 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     private final MongoTemplate mongo;
 
     @Override
-    public Optional<Data> find(String id, boolean resolveBreedName) {
+    public Optional<Data> find(String id, Map<String, Object> changes) {
         try {
             Document doc = mongo.findOne(Query.query(eligible(id)), Document.class, "pets");
             if (doc == null) return Optional.empty();
             String species = doc.getString("speciesId");
             String breed = doc.getString("breedId");
+            boolean resolveBreedName = Objects.equals(species, changes.getOrDefault("speciesId", species))
+                && Objects.equals(breed, changes.getOrDefault("breedId", breed));
             String breedName = resolveBreedName ? breedName(doc, species, breed) : null;
             Object weight = doc.get("weight");
             BigDecimal decimal = weight == null ? null : ((Decimal128) weight).bigDecimalValue();

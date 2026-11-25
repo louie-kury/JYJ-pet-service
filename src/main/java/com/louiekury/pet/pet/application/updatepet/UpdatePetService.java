@@ -14,6 +14,7 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +29,7 @@ public class UpdatePetService implements UpdatePetUseCase {
     public PetResult updatePet(String id, Map<String, Object> changes) {
         if (changes.isEmpty()) throw new BusinessException(ErrorCode.EMPTY_UPDATE);
         for (int attempt = 0; attempt < 3; attempt++) {
-            boolean resolveBreedName = !changes.containsKey("breedId") && !changes.containsKey("speciesId");
-            UpdatePetPort.Data old = port.find(id, resolveBreedName)
+            UpdatePetPort.Data old = port.find(id, changes)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
             Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
             if (!now.isAfter(old.updatedAt())) now = old.updatedAt().plusMillis(1);
@@ -55,7 +55,7 @@ public class UpdatePetService implements UpdatePetUseCase {
             String breedName = old.breedName();
             if (breedId == null) {
                 breedName = null;
-            } else if (changes.containsKey("breedId") || changes.containsKey("speciesId")) {
+            } else if (!Objects.equals(speciesId, old.speciesId()) || !Objects.equals(breedId, old.breedId())) {
                 PetBreed breed = breedPort.getPetBreedBySpeciesAndId(species, breedId)
                     .filter(found -> found.getSpecies() == species && found.getBreedId().equals(breedId))
                     .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));

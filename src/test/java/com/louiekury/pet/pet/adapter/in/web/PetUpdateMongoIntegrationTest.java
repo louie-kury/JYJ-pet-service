@@ -176,6 +176,37 @@ class PetUpdateMongoIntegrationTest {
         assertThat(page.getContent().get(0).getBreedName()).isEqualTo("이전 품종");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "{\"name\":\"새 이름\",\"breedId\":\"old-breed\"}",
+        "{\"name\":\"새 이름\",\"speciesId\":\"dog\"}",
+        "{\"name\":\"새 이름\",\"speciesId\":\"dog\",\"breedId\":\"old-breed\"}"
+    })
+    void unchangedSpeciesAndBreedPreserveHistoricalBreedWhenCatalogIsMissing(String json) throws Exception {
+        Document snapshot = new Document("species", new Document("speciesId", "dog").append("name", "강아지"))
+            .append("breed", new Document("breedId", "old-breed").append("name", "이전 품종"));
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"),
+            new Document("$set", new Document("breedId", "old-breed")
+                .append("registration.responseSnapshot", snapshot)));
+
+        mvc.perform(patch("/api/pets/pet-1").contentType(MediaType.APPLICATION_JSON).content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.name").value("새 이름"))
+            .andExpect(jsonPath("$.data.breed.breedId").value("old-breed"))
+            .andExpect(jsonPath("$.data.breed.name").value("이전 품종"));
+        assertThat(stored("pet-1").getString("name")).isEqualTo("새 이름");
+        assertThat(stored("pet-1").getString("breedId")).isEqualTo("old-breed");
+    }
+
+    @Test
+    void changedBreedMustExistInCatalog() throws Exception {
+        Document before = stored("pet-1");
+        mvc.perform(patch("/api/pets/pet-1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"breedId\":\"missing-breed\"}"))
+            .andExpect(status().isBadRequest());
+        assertThat(stored("pet-1")).isEqualTo(before);
+    }
+
     @Test
     void oldSpeciesSnapshotCannotSupplyNameForNewSpeciesWithSameBreedId() throws Exception {
         Document snapshot = new Document("species", new Document("speciesId", "dog").append("name", "강아지"))
