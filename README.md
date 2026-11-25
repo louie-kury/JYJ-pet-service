@@ -186,6 +186,8 @@ MySQL 연결의 `connectionTimeZone`은 숫자 오프셋 `+09:00`을 사용하�
 
 ## 접종명 등록
 
-`POST /api/vaccine-names`는 현재 인증 없이 접종명 기준 데이터를 등록합니다. 관리자 인증 연동은 후속 작업이며 연결 전에는 신뢰할 수 있는 개발 환경에서만 사용합니다. 요청은 `{"name":"광견병"}`이고 성공 시 201과 `data.vaccineNameId`(UUID), `data.name`을 반환합니다. 앞뒤 공백을 제거하며 빈 값 또는 100자를 초과한 이름은 400, 중복은 409입니다. 이름 중복 비교는 MySQL 테이블의 collation을 따릅니다. 조회 API가 아직 없으므로 Location은 반환하지 않으며 `Idempotency-Key` 재시도 계약은 아직 제공하지 않습니다.
+`POST /api/vaccine-names`는 현재 인증 없이 접종명 기준 데이터를 등록합니다. 관리자 인증 연동은 후속 작업이며 연결 전에는 신뢰할 수 있는 개발 환경에서만 사용합니다. 요청은 `{"name":"광견병"}`이고 성공 시 201과 `data.vaccineNameId`(UUID), `data.name`을 반환합니다. 앞뒤 공백을 제거하며 빈 값 또는 100자를 초과한 이름은 400, 중복은 409입니다. 이름 중복 비교는 MySQL 테이블의 collation을 따릅니다. 등록 응답에 Location은 반환하지 않으며 `Idempotency-Key` 재시도 계약은 아직 제공하지 않습니다.
+
+`GET /api/vaccine-names`는 접종명 전체를 등록 순서로 반환합니다. 응답의 `data`는 `vaccineNameId`와 `name`을 가진 배열이며 데이터가 없으면 빈 배열입니다. 검색은 지원하지 않으며 MySQL 조회 실패 시 503 `VACCINE_QUERY_UNAVAILABLE`을 반환합니다. 현재 인증 없이 누구나 조회할 수 있습니다. 관리자 인증이 준비되면 관리자만 조회하도록 변경해야 하며, 그 전에는 신뢰할 수 있는 개발 환경에서만 사용합니다.
 
 DB 관리자에게 실제 테이블과 기존 데이터를 확인받고, 신규 테이블이 필요한 경우 [접종명 테이블 SQL](docs/sql/001-create-vaccine.sql)을 별도로 적용합니다. 자동 DDL은 사용하지 않습니다. 실제 DB의 문자셋·collation과 기존 구조가 ERD 및 이름 비교 정책에 맞는지 확인해야 합니다.
