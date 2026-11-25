@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    VACCINE_NAME_DUPLICATE("이미 등록된 접종명입니다."),
+    VACCINE_PERSISTENCE_UNAVAILABLE("접종명을 저장할 수 없습니다."),
     EMPTY_UPDATE("수정할 항목이 없습니다."),
     VALIDATION_ERROR("요청 값이 올바르지 않습니다."),
     MEDIA_SERVICE_UNAVAILABLE("프로필 미디어 연결을 아직 사용할 수 없습니다."),
