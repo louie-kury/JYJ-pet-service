@@ -10,7 +10,7 @@ public final class ErrorCodeHttpMapper {
 
     public static HttpStatus toStatus(ErrorCode code) {
         return switch (code) {
-            case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
+            case VALIDATION_ERROR, EMPTY_UPDATE -> HttpStatus.BAD_REQUEST;
             case IDEMPOTENCY_CONFLICT -> HttpStatus.CONFLICT;
             case MEDIA_SERVICE_UNAVAILABLE, REFERENCE_DATA_UNAVAILABLE,
                 PERSISTENCE_UNAVAILABLE, PET_QUERY_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;

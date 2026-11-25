@@ -101,6 +101,8 @@ public class PetListPersistenceAdapter implements GetPetsPort {
         }
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
+                && snapshot.get("species") instanceof Map<?, ?> savedSpecies
+                && getString(pet, "speciesId", false).equals(savedSpecies.get("speciesId"))
                 && snapshot.get("breed") instanceof Map<?, ?> breed
                 && breedId.equals(breed.get("breedId"))
                 && breed.get("name") instanceof String name && !name.isBlank()) {

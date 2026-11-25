@@ -1,6 +1,6 @@
 # louie-kury-pet-service
 
-루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록과 목록 조회 API를 제공합니다. 현재 등록·목록은 회원 연결 전 임시 무인증 방식이며 회원·로그인·소유자 연결, 상세 조회·수정·삭제와 배포는 후속 작업입니다.
+루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록·목록 조회·수정 API를 제공합니다. 현재 이 기능들은 회원 연결 전 임시 무인증 방식이며 회원·로그인·소유자 연결, 상세 조회·삭제와 배포는 후속 작업입니다.
 
 ## 개발 환경
 
@@ -92,7 +92,7 @@ curl -i -X POST http://localhost:8080/api/pets \
 
 ## 반려동물 목록 조회
 
-`GET /api/pets`는 회원 연결 전 임시로 인증 없이 제공합니다. **누구나 소유자 미연결 동물의 목록을 조회할 수 있으며 본인 전용 목록이 아닙니다.** `caregiverId`가 null이거나 필드가 없는 동물 중 `deletedAt`이 null이거나 없는 동물만 반환합니다. 소유자가 지정된 동물과 소프트 삭제된 동물은 목록과 전체 건수에서 제외합니다. 요청·임의 헤더로 조회 소유자를 지정하지 않습니다. 이 예외는 [ADR 0003](docs/adr/0003-registration-before-member-linking.md)의 이슈 #9 결정이며 다른 조회·수정·삭제 API에 적용하지 않습니다.
+`GET /api/pets`는 회원 연결 전 임시로 인증 없이 제공합니다. **누구나 소유자 미연결 동물의 목록을 조회할 수 있으며 본인 전용 목록이 아닙니다.** `caregiverId`가 null이거나 필드가 없는 동물 중 `deletedAt`이 null이거나 없는 동물만 반환합니다. 소유자가 지정된 동물과 소프트 삭제된 동물은 목록과 전체 건수에서 제외합니다. 요청·임의 헤더로 조회 소유자를 지정하지 않습니다. 이 예외는 [ADR 0003](docs/adr/0003-registration-before-member-linking.md)의 이슈 #9 결정이며 상세 조회·삭제 API에 적용하지 않습니다. 수정은 이슈 #12의 별도 임시 결정입니다.
 
 ```sh
 curl -i 'http://localhost:8080/api/pets?page=0&size=4'
@@ -106,6 +106,21 @@ curl -i 'http://localhost:8080/api/pets?page=0&size=4'
 - DB 조회 실패나 잘못된 저장 데이터는 정상 빈 목록으로 바꾸지 않고 `503 PET_QUERY_UNAVAILABLE` 등 해당 오류로 반환합니다. 내부 문서·등록 요청 키는 목록에 노출하지 않습니다.
 
 인증 도입 후에는 검증된 호출자의 ID로 소유자 조건을 전환하고 등록의 소유자 저장·접근 권한을 함께 연결해야 합니다. 기존 null 소유자 동물의 귀속은 별도 증명·이관 정책으로 처리하며 최초 로그인 사용자에게 자동 부여하지 않습니다. 목록 조회와 인덱스는 테스트용 MongoDB에서 확인했고, 실행 서버에서 등록·목록·페이지 조회도 확인했습니다. 인증·미디어 서비스 연동은 검증하지 않았습니다.
+
+## 반려동물 수정
+
+`PATCH /api/pets/{petId}`는 회원 연결 전 개발 환경에서 사용할 임시 무인증 API입니다. `caregiverId`와 `deletedAt`이 null이거나 없는 동물만 수정합니다. 소유자가 연결됐거나 삭제된 동물, 존재하지 않는 ID는 `404 NOT_FOUND`입니다. **ID를 아는 누구나 미연결 동물을 수정할 수 있으므로 실제 사용자 데이터나 외부 공개 환경에 사용하지 않습니다.**
+
+```sh
+curl -i -X PATCH 'http://localhost:8080/api/pets/<petId>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"루이","weight":5.2}'
+```
+
+- `name`, `speciesId`, `breedId`, `profileMediaId`, `birth`, `sex`, `isNeutered`, `weight`, `basicVaccinationCompleted`를 부분 수정합니다. 생략한 값은 유지하고 선택 필드의 null은 해제합니다. 필수인 이름·종·성별은 null로 설정할 수 없습니다.
+- 빈 객체는 `400 EMPTY_UPDATE`입니다. 알 수 없거나 중복된 필드, 잘못된 타입·값과 유효하지 않은 종·품종 조합은 `400 VALIDATION_ERROR`입니다. 이름·생일·체중 등은 등록의 입력 기준을 따릅니다. 종이나 품종을 변경할 때 변경 후 조합을 확인합니다.
+- 미디어 연결 전에는 수정 후 `profileMediaId`가 non-null이면 `503 MEDIA_SERVICE_UNAVAILABLE`입니다. 기존 미디어 ID가 있는 경우에도 null로 해제하지 않은 수정은 거부합니다. 검증 실패 시 저장하지 않습니다.
+- 성공하면 `200`과 현재 정보의 `PetDetail`을 반환하고 `updatedAt`을 갱신합니다. 등록 요청 키와 등록 당시 응답 스냅샷은 유지합니다. 인증이 준비되면 사용자와 소유자 확인을 연결하고 이 임시 예외를 제거해야 합니다.
 
 ## MongoDB 변경 관리
 
@@ -151,7 +166,7 @@ curl -i 'http://localhost:8080/api/pets?page=0&size=4'
 
 MySQL 연결의 `connectionTimeZone`은 숫자 오프셋 `+09:00`을 사용하고 `forceConnectionTimeZoneToSession=true`로 세션에 적용합니다. MySQL의 이름 기반 시간대 테이블에 의존하지 않기 위한 설정입니다. Hibernate는 `hibernate.type.java_time_use_direct_jdbc=true`로 `LocalDateTime`을 직접 전달해 JVM 기본 시간대에 따른 벽시각 변환을 피합니다. 업무·API·로그의 지역 시간대 기준은 계속 `Asia/Seoul`입니다.
 
-로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록과 소유자 미연결 동물의 목록은 사용자 요청에 따라 임시 무인증으로 허용하며, 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
+로그인·토큰 검증은 별도 MSA 담당자의 구현 범위입니다. 현재 등록과 소유자 미연결 동물의 목록·수정은 사용자 요청에 따라 임시 무인증으로 허용하며, 이는 다른 업무 API의 접근 정책을 결정하지 않습니다. 인증 도입 시 검증된 주체 전달·소유권·401/403 책임과 기존 미연결 동물 귀속을 별도 구현합니다. 임의 헤더는 신뢰하지 않습니다.
 
 ## 관련 문서
 

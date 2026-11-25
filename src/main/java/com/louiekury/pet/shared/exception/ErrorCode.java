@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    EMPTY_UPDATE("수정할 항목이 없습니다."),
     VALIDATION_ERROR("요청 값이 올바르지 않습니다."),
     MEDIA_SERVICE_UNAVAILABLE("프로필 미디어 연결을 아직 사용할 수 없습니다."),
     REFERENCE_DATA_UNAVAILABLE("종·품종 기준 데이터를 조회할 수 없습니다."),
