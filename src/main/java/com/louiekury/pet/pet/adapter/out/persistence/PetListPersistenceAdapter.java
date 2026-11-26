@@ -33,8 +33,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
     @Override
     public PetListPage getPets(GetPetsQuery query) {
         try {
-            // 회원 연결 전 임시 목록은 소유자 null 또는 필드가 없는 동물만 공개한다.
-            Criteria owner = Criteria.where("caregiverId").is(null).and("deletedAt").is(null);
+            Criteria owner = Criteria.where("caregiverId").is(query.getCaregiverId()).and("deletedAt").is(null);
             long total = mongoTemplate.count(Query.query(owner), "pets");
             Query page = Query.query(owner).with(Sort.by(Sort.Direction.DESC, "createdAt", "_id"))
                 .skip(query.getOffset()).limit(query.getSize());

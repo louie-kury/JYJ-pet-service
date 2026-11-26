@@ -40,61 +40,66 @@ class PetListWebTest {
 
     private GetPetsPort pets;
     private MockMvc mvc;
+    private com.louiekury.pet.global.security.AuthenticatedMember auth;
 
     @BeforeEach
     void setUp() {
         pets = mock(GetPetsPort.class);
+        auth = mock(com.louiekury.pet.global.security.AuthenticatedMember.class);
+        when(auth.require("Bearer valid")).thenReturn("owner-a");
+        when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(), 0));
         GetPetsService service = new GetPetsService(pets,
             Clock.fixed(Instant.parse("2026-11-22T15:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(
-                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), mock(com.louiekury.pet.global.security.AuthenticatedMember.class)))
+                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
     @DisplayName("기본 요청은 0페이지 4개와 공통 페이지 응답을 반환한다")
     void usesDefaultPageSizeOfFour() throws Exception {
-        mvc.perform(get("/api/pets"))
+        mvc.perform(get("/api/pets").header("Authorization", "Bearer valid"))
             .andExpect(status().isOk())
             .andExpect(content().json("{\"data\":{\"content\":[],\"page\":0,\"size\":4,\"totalElements\":0,\"totalPages\":0,\"hasNext\":false}}"));
         ArgumentCaptor<GetPetsQuery> query = ArgumentCaptor.forClass(GetPetsQuery.class);
         verify(pets).getPets(query.capture());
         assertThat(query.getValue().getPage()).isZero();
         assertThat(query.getValue().getSize()).isEqualTo(4);
+        assertThat(query.getValue().getCaregiverId()).isEqualTo("owner-a");
     }
 
     @Test
     @DisplayName("API는 화면 기본값과 별개로 최대 100개 요청을 허용한다")
     void acceptsMaximumSize() throws Exception {
-        mvc.perform(get("/api/pets").param("size", "100"))
+        mvc.perform(get("/api/pets").header("Authorization", "Bearer valid").param("size", "100"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.size").value(100));
     }
 
     @Test
-    @DisplayName("임의 사용자 ID 쿼리·헤더가 있어도 임시 목록의 페이지 조건만 전달한다")
+    @DisplayName("임의 사용자 ID 쿼리·헤더 대신 검증된 회원 ID를 전달한다")
     void ignoresSpoofedOwnerIdentifiers() throws Exception {
-        mvc.perform(get("/api/pets")
+        mvc.perform(get("/api/pets").header("Authorization", "Bearer valid")
                 .param("caregiverId", "victim").header("X-User-Id", "victim"))
             .andExpect(status().isOk());
         ArgumentCaptor<GetPetsQuery> query = ArgumentCaptor.forClass(GetPetsQuery.class);
         verify(pets).getPets(query.capture());
+        assertThat(query.getValue().getCaregiverId()).isEqualTo("owner-a");
     }
 
     @Test
-    @DisplayName("회원 연동 전 임시 목록은 인증 없이 정상 조회한다")
-    void supportsTemporaryAnonymousListing() throws Exception {
-        mvc.perform(get("/api/pets").header("X-User-Id", "owner-a")
-                .header("Authorization", "Bearer unverified"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content").isEmpty());
-        verify(pets).getPets(any(GetPetsQuery.class));
+    @DisplayName("인증 없는 목록 요청은 거부한다")
+    void rejectsAnonymousListing() throws Exception {
+        mvc.perform(get("/api/pets"))
+            .andExpect(status().isUnauthorized());
+        verifyNoInteractions(pets);
     }
 
     @ParameterizedTest
     @CsvSource({"page,-1", "page,abc", "page,2147483648", "size,0", "size,-1", "size,101", "size,abc"})
     @DisplayName("페이지 조건의 범위·타입 오류는 400이며 DB를 조회하지 않는다")
     void rejectsInvalidPagination(String field, String value) throws Exception {
-        mvc.perform(get("/api/pets").param(field, value))
+        mvc.perform(get("/api/pets").header("Authorization", "Bearer valid").param(field, value))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
         verifyNoInteractions(pets);
     }
@@ -104,7 +109,7 @@ class PetListWebTest {
     void returnsSummaryWithExplicitNulls() throws Exception {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(
             PetListData.of("pet-1", "루이", PetSpecies.DOG, null, null, null, null, "MALE")), 1));
-        String body = mvc.perform(get("/api/pets"))
+        String body = mvc.perform(get("/api/pets").header("Authorization", "Bearer valid"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.content[0].petId").value("pet-1"))
             .andExpect(jsonPath("$.data.content[0].name").value("루이"))
@@ -122,7 +127,7 @@ class PetListWebTest {
     void hidesPersistenceErrorDetails() throws Exception {
         when(pets.getPets(any())).thenThrow(new BusinessException(ErrorCode.PET_QUERY_UNAVAILABLE,
             new IllegalStateException("secret-uri-and-host")));
-        String body = mvc.perform(get("/api/pets"))
+        String body = mvc.perform(get("/api/pets").header("Authorization", "Bearer valid"))
             .andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.code").value("PET_QUERY_UNAVAILABLE"))
             .andExpect(jsonPath("$.data").doesNotExist())

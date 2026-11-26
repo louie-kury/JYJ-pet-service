@@ -33,18 +33,18 @@ class PetListPersistenceAdapterTest {
     }
 
     @Test
-    @DisplayName("목록·전체 개수에 소유자 없음·삭제 없음 조건을 동일하게 적용하고 페이지 조건은 목록에만 적용한다")
-    void constructsUnownedActiveFilterForBothQueries() {
+    @DisplayName("목록·전체 개수에 본인 소유·삭제 없음 조건을 동일하게 적용하고 페이지 조건은 목록에만 적용한다")
+    void constructsOwnedActiveFilterForBothQueries() {
         when(template.count(any(Query.class), eq("pets"))).thenReturn(0L);
         when(template.find(any(Query.class), eq(Document.class), eq("pets"))).thenReturn(List.of());
 
-        adapter.getPets(GetPetsQuery.of(1, 4));
+        adapter.getPets(GetPetsQuery.of(1, 4, "owner-a"));
 
         ArgumentCaptor<Query> count = ArgumentCaptor.forClass(Query.class);
         ArgumentCaptor<Query> content = ArgumentCaptor.forClass(Query.class);
         verify(template).count(count.capture(), eq("pets"));
         verify(template).find(content.capture(), eq(Document.class), eq("pets"));
-        Document expectedFilter = new Document("caregiverId", null).append("deletedAt", null);
+        Document expectedFilter = new Document("caregiverId", "owner-a").append("deletedAt", null);
         assertThat(count.getValue().getQueryObject()).isEqualTo(expectedFilter);
         assertThat(content.getValue().getQueryObject()).isEqualTo(expectedFilter);
         assertThat(count.getValue().getSkip()).isZero();
@@ -59,7 +59,7 @@ class PetListPersistenceAdapterTest {
     void convertsCountFailure() {
         when(template.count(any(Query.class), eq("pets")))
             .thenThrow(new DataAccessResourceFailureException("secret-db-host"));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4)), ErrorCode.PET_QUERY_UNAVAILABLE);
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 
     @Test
@@ -68,7 +68,7 @@ class PetListPersistenceAdapterTest {
         when(template.count(any(Query.class), eq("pets"))).thenReturn(1L);
         when(template.find(any(Query.class), eq(Document.class), eq("pets")))
             .thenThrow(new DataAccessResourceFailureException("secret-db-host"));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4)), ErrorCode.PET_QUERY_UNAVAILABLE);
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 
     @Test
@@ -82,7 +82,7 @@ class PetListPersistenceAdapterTest {
         when(template.find(any(Query.class), eq(Document.class), eq("pets"))).thenReturn(List.of(pet));
         when(template.find(any(Query.class), eq(Document.class), eq("pet_species")))
             .thenThrow(new DataAccessResourceFailureException("secret-db-host"));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4)), ErrorCode.PET_QUERY_UNAVAILABLE);
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {

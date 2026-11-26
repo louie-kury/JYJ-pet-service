@@ -41,6 +41,13 @@ class GetPetsServiceTest {
     }
 
     @Test
+    void rejectsMissingOwnerWithoutQueryingPets() {
+        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4, null)), ErrorCode.UNAUTHORIZED);
+        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4, " ")), ErrorCode.UNAUTHORIZED);
+        org.mockito.Mockito.verifyNoInteractions(pets);
+    }
+
+    @Test
     @DisplayName("여러 동물의 현재 이름·종·품종·성별을 서로 섞지 않고 반환한다")
     void preservesEachPetsSummaryFields() {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(
@@ -48,7 +55,7 @@ class GetPetsServiceTest {
                 LocalDate.of(2023, 5, 1), "MALE"),
             PetListData.of("pet-cat", "쿠리", PetSpecies.CAT, null, null, null, null, "FEMALE")), 2));
 
-        GetPetsResult result = service.getPets(GetPetsQuery.of(0, 4));
+        GetPetsResult result = service.getPets(GetPetsQuery.of(0, 4, "owner-a"));
 
         assertThat(result.getContent()).hasSize(2);
         var dog = result.getContent().get(0);
@@ -81,7 +88,7 @@ class GetPetsServiceTest {
         when(pets.getPets(any())).thenReturn(PetListPage.of(
             List.of(pet(LocalDate.parse(birth), null)), 1));
 
-        var age = service.getPets(GetPetsQuery.of(0, 4)).getContent().get(0).getAge();
+        var age = service.getPets(GetPetsQuery.of(0, 4, "owner-a")).getContent().get(0).getAge();
 
         assertThat(age.getYears()).isEqualTo(years);
         assertThat(age.getMonths()).isEqualTo(months);
@@ -93,7 +100,7 @@ class GetPetsServiceTest {
     void returnsCorrectPageMetadata(long total, int page, long totalPages, boolean hasNext) {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(), total));
 
-        GetPetsResult result = service.getPets(GetPetsQuery.of(page, 4));
+        GetPetsResult result = service.getPets(GetPetsQuery.of(page, 4, "owner-a"));
 
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getPage()).isEqualTo(page);
@@ -107,7 +114,7 @@ class GetPetsServiceTest {
     @CsvSource({"-1,4", "0,0", "0,-1", "0,101"})
     @DisplayName("잘못된 페이지 번호·조회 개수는 DB 조회 전에 검증 오류로 거부한다")
     void rejectsInvalidPageConditions(int page, int size) {
-        assertCode(() -> service.getPets(GetPetsQuery.of(page, size)), ErrorCode.VALIDATION_ERROR);
+        assertCode(() -> service.getPets(GetPetsQuery.of(page, size, "owner-a")), ErrorCode.VALIDATION_ERROR);
         verifyNoInteractions(pets);
     }
 
@@ -120,7 +127,7 @@ class GetPetsServiceTest {
             return PetListPage.of(List.of(), 0);
         });
 
-        GetPetsResult result = service.getPets(GetPetsQuery.of(Integer.MAX_VALUE, 100));
+        GetPetsResult result = service.getPets(GetPetsQuery.of(Integer.MAX_VALUE, 100, "owner-a"));
 
         assertThat(result.getPage()).isEqualTo(Integer.MAX_VALUE);
         assertThat(result.getSize()).isEqualTo(100);
@@ -133,7 +140,7 @@ class GetPetsServiceTest {
     void calculatesLargeTotalWithoutOverflow() {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(), Long.MAX_VALUE));
 
-        GetPetsResult result = service.getPets(GetPetsQuery.of(0, 4));
+        GetPetsResult result = service.getPets(GetPetsQuery.of(0, 4, "owner-a"));
 
         assertThat(result.getTotalPages()).isEqualTo(2305843009213693952L);
         assertThat(result.isHasNext()).isTrue();
@@ -144,21 +151,21 @@ class GetPetsServiceTest {
     @DisplayName("조회·기준 데이터 장애는 정상 빈 목록으로 숨기지 않는다")
     void preservesPortFailures(ErrorCode code) {
         when(pets.getPets(any())).thenThrow(new BusinessException(code));
-        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4)), code);
+        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4, "owner-a")), code);
     }
 
     @Test
     @DisplayName("프로필 파일이 있으나 연동되지 않았다면 정상 파일처럼 응답하지 않는다")
     void rejectsUnresolvedMedia() {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(pet(null, "media-1")), 1));
-        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4)), ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
+        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
     }
 
     @Test
     @DisplayName("저장된 미래 생일은 음수 나이를 반환하지 않고 조회 오류로 처리한다")
     void rejectsCorruptedFutureBirth() {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(pet(LocalDate.of(2026, 11, 24), null)), 1));
-        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4)), ErrorCode.PET_QUERY_UNAVAILABLE);
+        assertCode(() -> service.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 
     private static PetListData pet(LocalDate birth, String mediaId) {

@@ -36,8 +36,8 @@ public class PetWebAdapter {
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(result)));
     }
 
-    public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(int page, int size) {
-        GetPetsResult result = getPetsUseCase.getPets(GetPetsQuery.of(page, size));
+    public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(int page, int size, String caregiverId) {
+        GetPetsResult result = getPetsUseCase.getPets(GetPetsQuery.of(page, size, caregiverId));
         return ResponseEntity.ok(ApiResponse.success(PetListResponseDto.from(result)));
     }
 

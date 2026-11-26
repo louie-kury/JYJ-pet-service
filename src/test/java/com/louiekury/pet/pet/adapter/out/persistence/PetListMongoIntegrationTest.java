@@ -58,20 +58,20 @@ class PetListMongoIntegrationTest {
     }
 
     @Test
-    @DisplayName("목록과 total은 소유자 null·누락의 활성 동물만 포함하고 유소유자·삭제 동물은 제외한다")
-    void isolatesUnownedActivePetsForContentAndCount() {
+    @DisplayName("목록과 total은 본인의 활성 동물만 목록과 total에 포함한다")
+    void isolatesOwnedActivePetsForContentAndCount() {
         Document noOwner = pet("missing-owner", null, CREATED);
         noOwner.remove("caregiverId");
         template.getCollection("pets").insertMany(List.of(
             pet("owned-live", "owner-a", CREATED),
             pet("other-live", "owner-b", CREATED),
             pet("anonymous", null, CREATED), noOwner,
-            pet("anonymous-deleted", null, CREATED).append("deletedAt", Date.from(CREATED))));
+            pet("owned-deleted", "owner-a", CREATED).append("deletedAt", Date.from(CREATED))));
 
-        var result = adapter.getPets(GetPetsQuery.of(0, 4));
+        var result = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a"));
 
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getContent()).extracting(item -> item.getPetId()).containsExactly("missing-owner", "anonymous");
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).extracting(item -> item.getPetId()).containsExactly("owned-live");
     }
 
     @Test
@@ -79,14 +79,14 @@ class PetListMongoIntegrationTest {
     void paginatesWithStableCreationAndIdOrdering() {
         List<Document> documents = new ArrayList<>();
         for (String id : List.of("a", "f", "c", "e", "b", "d")) {
-            documents.add(pet(id, null, CREATED));
+            documents.add(pet(id, "owner-a", CREATED));
         }
-        documents.add(pet("newest", null, CREATED.plusSeconds(1)));
+        documents.add(pet("newest", "owner-a", CREATED.plusSeconds(1)));
         template.getCollection("pets").insertMany(documents);
 
-        var first = adapter.getPets(GetPetsQuery.of(0, 4));
-        var second = adapter.getPets(GetPetsQuery.of(1, 4));
-        var beyond = adapter.getPets(GetPetsQuery.of(2, 4));
+        var first = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a"));
+        var second = adapter.getPets(GetPetsQuery.of(1, 4, "owner-a"));
+        var beyond = adapter.getPets(GetPetsQuery.of(2, 4, "owner-a"));
 
         assertThat(first.getContent()).extracting(item -> item.getPetId()).containsExactly("newest", "f", "e", "d");
         assertThat(second.getContent()).extracting(item -> item.getPetId()).containsExactly("c", "b", "a");
@@ -99,13 +99,13 @@ class PetListMongoIntegrationTest {
     @Test
     @DisplayName("등록 snapshot의 오래된 이름·종·생일 대신 현재 최상위 저장 필드를 조회한다")
     void readsCurrentPetFieldsInsteadOfRegistrationSnapshot() {
-        template.getCollection("pets").insertOne(pet("current", null, CREATED)
+        template.getCollection("pets").insertOne(pet("current", "owner-a", CREATED)
             .append("name", "새 이름").append("birth", "2024-02-29")
             .append("registration", new Document("responseSnapshot", new Document("name", "오래된 이름")
                 .append("birth", "2000-01-01").append("age", new Document("years", 99))
                 .append("species", new Document("speciesId", "cat")))));
 
-        var current = adapter.getPets(GetPetsQuery.of(0, 4)).getContent().get(0);
+        var current = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")).getContent().get(0);
 
         assertThat(current.getName()).isEqualTo("새 이름");
         assertThat(current.getBirth()).hasToString("2024-02-29");
@@ -116,15 +116,15 @@ class PetListMongoIntegrationTest {
     @DisplayName("비활성 품종도 현재 기준 명칭으로 표시하고 종이 다른 같은 품종 ID를 섞지 않는다")
     void resolvesCurrentInactiveBreedNamesWithinSpecies() {
         template.getCollection("pets").insertMany(List.of(
-            withBreed(pet("dog", null, CREATED), "shared", "과거 강아지 품종"),
-            withBreed(pet("cat", null, CREATED).append("speciesId", "cat"), "shared", "과거 고양이 품종")));
+            withBreed(pet("dog", "owner-a", CREATED), "shared", "과거 강아지 품종"),
+            withBreed(pet("cat", "owner-a", CREATED).append("speciesId", "cat"), "shared", "과거 고양이 품종")));
         template.getCollection("pet_species").insertMany(List.of(
             new Document("_id", "dog").append("breeds", List.of(new Document("breedId", "shared")
                 .append("name", "강아지 현재 품종").append("active", false))),
             new Document("_id", "cat").append("breeds", List.of(new Document("breedId", "shared")
                 .append("name", "고양이 현재 품종").append("active", true)))));
 
-        var result = adapter.getPets(GetPetsQuery.of(0, 4));
+        var result = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a"));
 
         assertThat(result.getContent()).extracting(item -> item.getBreedName())
             .containsExactly("강아지 현재 품종", "고양이 현재 품종");
@@ -133,8 +133,8 @@ class PetListMongoIntegrationTest {
     @Test
     @DisplayName("현재 품종이 사라졌으면 같은 품종 ID의 등록 당시 표시명을 보존한다")
     void preservesMatchingHistoricalBreedNameWhenCatalogIsMissing() {
-        template.getCollection("pets").insertOne(withBreed(pet("pet", null, CREATED), "poodle", "푸들"));
-        var result = adapter.getPets(GetPetsQuery.of(0, 4)).getContent().get(0);
+        template.getCollection("pets").insertOne(withBreed(pet("pet", "owner-a", CREATED), "poodle", "푸들"));
+        var result = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")).getContent().get(0);
         assertThat(result.getBreedId()).isEqualTo("poodle");
         assertThat(result.getBreedName()).isEqualTo("푸들");
     }
@@ -142,17 +142,17 @@ class PetListMongoIntegrationTest {
     @Test
     @DisplayName("현재 품종과 다른 ID의 snapshot 표시명은 사용하지 않고 오류로 처리한다")
     void rejectsMismatchingHistoricalBreed() {
-        template.getCollection("pets").insertOne(withBreed(pet("pet", null, CREATED), "old", "다른 품종")
+        template.getCollection("pets").insertOne(withBreed(pet("pet", "owner-a", CREATED), "old", "다른 품종")
             .append("breedId", "current"));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4)), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"invalid-date", "2023-02-29"})
     @DisplayName("손상된 저장 생일은 정상 정보처럼 반환하지 않고 조회 오류로 처리한다")
     void rejectsInvalidStoredBirth(String birth) {
-        template.getCollection("pets").insertOne(pet("pet", null, CREATED).append("birth", birth));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4)), ErrorCode.PET_QUERY_UNAVAILABLE);
+        template.getCollection("pets").insertOne(pet("pet", "owner-a", CREATED).append("birth", birth));
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 
     private static Document pet(String id, String caregiverId, Instant createdAt) {

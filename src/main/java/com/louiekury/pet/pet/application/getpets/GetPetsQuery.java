@@ -12,9 +12,10 @@ public class GetPetsQuery {
 
     private final int page;
     private final int size;
+    private final String caregiverId;
 
-    public static GetPetsQuery of(int page, int size) {
-        return GetPetsQuery.builder().page(page).size(size).build();
+    public static GetPetsQuery of(int page, int size, String caregiverId) {
+        return GetPetsQuery.builder().page(page).size(size).caregiverId(caregiverId).build();
     }
 
     public long getOffset() {

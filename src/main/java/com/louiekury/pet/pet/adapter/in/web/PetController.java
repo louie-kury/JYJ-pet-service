@@ -36,8 +36,9 @@ public class PetController {
     @GetMapping
     public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "4") int size) {
-        return petWebAdapter.getPets(page, size);
+            @RequestParam(defaultValue = "4") int size,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return petWebAdapter.getPets(page, size, authenticatedMember.require(authorization));
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
