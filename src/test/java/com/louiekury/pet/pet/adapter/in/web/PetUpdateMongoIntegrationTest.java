@@ -50,7 +50,9 @@ class PetUpdateMongoIntegrationTest {
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
-            .setControllerAdvice(new GlobalExceptionHandler()).build();
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .defaultRequest(patch("/").requestAttr(PetRegistrationAuthInterceptor.CAREGIVER_ID, "owner-a"))
+            .build();
     }
 
     @BeforeEach
@@ -106,7 +108,8 @@ class PetUpdateMongoIntegrationTest {
     void ownedDeletedAndMissingPetsAreNotModified() throws Exception {
         mongo.getCollection("pets").insertOne(pet("owned").append("caregiverId", "owner"));
         mongo.getCollection("pets").insertOne(pet("deleted").append("deletedAt", Date.from(CREATED)));
-        for (String id : new String[]{"owned", "deleted", "missing"}) {
+        mongo.getCollection("pets").insertOne(pet("unowned").append("caregiverId", null));
+        for (String id : new String[]{"owned", "deleted", "unowned", "missing"}) {
             mvc.perform(patch("/api/pets/" + id).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"변경\"}"))
                 .andExpect(status().isNotFound());
@@ -221,7 +224,7 @@ class PetUpdateMongoIntegrationTest {
         assertThatThrownBy(() -> new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4, "owner-a")))
             .isInstanceOfSatisfying(BusinessException.class,
                 error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
-        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", null)));
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));
         mvc.perform(patch("/api/pets/pet-1").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"변경\"}"))
             .andExpect(status().isServiceUnavailable())
@@ -231,7 +234,7 @@ class PetUpdateMongoIntegrationTest {
 
     private Document stored(String id) { return mongo.getCollection("pets").find(new Document("_id", id)).first(); }
     private Document pet(String id) {
-        return new Document("_id", id).append("caregiverId", null).append("name", "루이")
+        return new Document("_id", id).append("caregiverId", "owner-a").append("name", "루이")
             .append("speciesId", "dog").append("sex", "MALE").append("birth", "2024-02-29")
             .append("weight", Decimal128.parse("5.125")).append("createdAt", Date.from(CREATED))
             .append("updatedAt", Date.from(CREATED)).append("registration", new Document("requestKey", "key-1")

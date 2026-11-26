@@ -26,10 +26,11 @@ public class UpdatePetService implements UpdatePetUseCase {
     private final Clock clock;
 
     @Override
-    public PetResult updatePet(String id, Map<String, Object> changes) {
+    public PetResult updatePet(String id, Map<String, Object> changes, String caregiverId) {
+        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         if (changes.isEmpty()) throw new BusinessException(ErrorCode.EMPTY_UPDATE);
         for (int attempt = 0; attempt < 3; attempt++) {
-            UpdatePetPort.Data old = port.find(id, changes)
+            UpdatePetPort.Data old = port.find(id, changes, caregiverId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
             Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
             if (!now.isAfter(old.updatedAt())) now = old.updatedAt().plusMillis(1);
@@ -64,8 +65,7 @@ public class UpdatePetService implements UpdatePetUseCase {
                 throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
             }
             if (changes.containsKey("name")) changes.put("name", name);
-            // shortcut: 익명 수정은 소유자 연결 전 개발 환경에서만 사용하고 인증 도입 시 제거한다.
-            if (port.update(old, changes, now)) {
+            if (port.update(old, changes, now, caregiverId)) {
                 Boolean neutered = (Boolean) changes.getOrDefault("isNeutered", old.neutered());
                 Boolean vaccination = (Boolean) changes.getOrDefault("basicVaccinationCompleted", old.vaccination());
                 return PetResult.updated(id, name, species, breedId, breedName, birth,

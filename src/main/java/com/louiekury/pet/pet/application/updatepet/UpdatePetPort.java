@@ -11,6 +11,6 @@ public interface UpdatePetPort {
             String profileMediaId, LocalDate birth, String sex, Boolean neutered,
             BigDecimal weight, Boolean vaccination, Instant createdAt, Instant updatedAt) { }
 
-    Optional<Data> find(String id, Map<String, Object> changes);
-    boolean update(Data previous, Map<String, Object> changes, Instant updatedAt);
+    Optional<Data> find(String id, Map<String, Object> changes, String caregiverId);
+    boolean update(Data previous, Map<String, Object> changes, Instant updatedAt, String caregiverId);
 }

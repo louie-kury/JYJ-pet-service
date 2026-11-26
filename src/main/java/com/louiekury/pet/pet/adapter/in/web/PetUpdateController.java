@@ -4,8 +4,7 @@ import com.louiekury.pet.global.web.response.ApiResponse;
 import com.louiekury.pet.pet.adapter.in.web.dto.request.UpdatePetRequest;
 import com.louiekury.pet.pet.adapter.in.web.dto.response.PetDetailResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Profile;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -16,15 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Profile("dev")
-@ConditionalOnProperty(prefix = "pet.anonymous-update", name = "enabled", havingValue = "true")
 @RequestMapping("/api/pets")
 public class PetUpdateController {
     private final PetWebAdapter petWebAdapter;
 
     @PatchMapping(value = "/{petId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(
-            @PathVariable String petId, @RequestBody UpdatePetRequest request) {
-        return petWebAdapter.updatePet(petId, request);
+            @PathVariable String petId, @RequestBody UpdatePetRequest request,
+            @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
+        return petWebAdapter.updatePet(petId, request, caregiverId);
     }
 }

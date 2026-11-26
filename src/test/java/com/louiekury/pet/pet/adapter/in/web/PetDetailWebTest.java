@@ -21,7 +21,7 @@ class PetDetailWebTest {
         var detail = mock(GetPetService.class);
         when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
-            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail), auth))
+            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail)))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(get("/api/pets/pet-1").header("X-User-Id", "forged"))
@@ -37,7 +37,7 @@ class PetDetailWebTest {
             "pet-1", "루이", com.louiekury.pet.pet.domain.PetSpecies.DOG, null, null, null, null,
             "MALE", true, new java.math.BigDecimal("5.2"), false, now, now));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
-            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail), auth))
+            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail)))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(get("/api/pets/pet-1").header("Authorization", "Bearer valid").header("X-User-Id", "attacker"))
@@ -53,7 +53,7 @@ class PetDetailWebTest {
             java.time.Clock.fixed(java.time.Instant.parse("2026-11-26T00:00:00Z"), java.time.ZoneOffset.UTC));
         when(auth.require("Bearer valid")).thenReturn("member-1");
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
-            service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(GetPetService.class)), auth))
+            service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(GetPetService.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")

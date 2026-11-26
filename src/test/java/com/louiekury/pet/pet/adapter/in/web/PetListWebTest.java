@@ -53,7 +53,7 @@ class PetListWebTest {
         GetPetsService service = new GetPetsService(pets,
             Clock.fixed(Instant.parse("2026-11-22T15:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(
-                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), auth))
+                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }

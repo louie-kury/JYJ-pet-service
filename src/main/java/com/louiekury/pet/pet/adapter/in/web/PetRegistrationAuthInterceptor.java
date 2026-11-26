@@ -17,7 +17,7 @@ public class PetRegistrationAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         if ("POST".equals(request.getMethod()) || "GET".equals(request.getMethod())
-                || "HEAD".equals(request.getMethod())) {
+                || "HEAD".equals(request.getMethod()) || "PATCH".equals(request.getMethod())) {
             request.setAttribute(CAREGIVER_ID, authenticatedMember.require(request.getHeader("Authorization")));
         }
         return true;
