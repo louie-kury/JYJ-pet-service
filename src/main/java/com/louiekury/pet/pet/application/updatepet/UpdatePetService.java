@@ -73,6 +73,7 @@ public class UpdatePetService implements UpdatePetUseCase {
                     vaccination, old.createdAt(), now);
             }
         }
+        if (port.find(id, changes, caregiverId).isEmpty()) throw new BusinessException(ErrorCode.NOT_FOUND);
         throw new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE);
     }
     private static void require(boolean condition) {
