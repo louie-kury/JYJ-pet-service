@@ -17,7 +17,7 @@ public final class ErrorCodeHttpMapper {
                 VACCINE_QUERY_UNAVAILABLE, AUTH_SERVICE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
-            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case NOT_FOUND, VACCINE_NAME_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case METHOD_NOT_ALLOWED -> HttpStatus.METHOD_NOT_ALLOWED;
             case INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
