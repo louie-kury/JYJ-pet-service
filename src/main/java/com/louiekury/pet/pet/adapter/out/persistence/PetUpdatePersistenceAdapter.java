@@ -27,9 +27,9 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     private final MongoTemplate mongo;
 
     @Override
-    public Optional<Data> find(String id, Map<String, Object> changes) {
+    public Optional<Data> find(String id, Map<String, Object> changes, String caregiverId) {
         try {
-            Document doc = mongo.findOne(Query.query(eligible(id)), Document.class, "pets");
+            Document doc = mongo.findOne(Query.query(eligible(id, caregiverId)), Document.class, "pets");
             if (doc == null) return Optional.empty();
             String species = doc.getString("speciesId");
             String breed = doc.getString("breedId");
@@ -50,9 +50,9 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     }
 
     @Override
-    public boolean update(Data previous, Map<String, Object> changes, Instant now) {
+    public boolean update(Data previous, Map<String, Object> changes, Instant now, String caregiverId) {
         try {
-            Criteria criteria = eligible(previous.id()).and("updatedAt").is(Date.from(previous.updatedAt()));
+            Criteria criteria = eligible(previous.id(), caregiverId).and("updatedAt").is(Date.from(previous.updatedAt()));
             Update update = new Update();
             changes.forEach((key, value) -> update.set(key, value instanceof LocalDate date ? date.toString()
                 : value instanceof BigDecimal decimal ? new Decimal128(decimal) : value));
@@ -63,8 +63,8 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
         }
     }
 
-    private Criteria eligible(String id) {
-        return Criteria.where("_id").is(id).and("caregiverId").is(null).and("deletedAt").is(null);
+    private Criteria eligible(String id, String caregiverId) {
+        return Criteria.where("_id").is(id).and("caregiverId").is(caregiverId).and("deletedAt").is(null);
     }
 
     private Instant instant(Object value) {
