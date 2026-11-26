@@ -13,6 +13,6 @@ public class PetWebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(registrationAuth).addPathPatterns("/api/pets", "/api/pets/*");
+        registry.addInterceptor(registrationAuth).addPathPatterns("/api/pets", "/api/pets/*", "/api/pets/*/vaccinations");
     }
 }

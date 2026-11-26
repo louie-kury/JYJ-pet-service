@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    VACCINE_NAME_NOT_FOUND("접종명을 찾을 수 없습니다."),
     VACCINE_NAME_DUPLICATE("이미 등록된 접종명입니다."),
     VACCINE_PERSISTENCE_UNAVAILABLE("접종명을 저장할 수 없습니다."),
     VACCINE_QUERY_UNAVAILABLE("접종명 목록을 조회할 수 없습니다."),

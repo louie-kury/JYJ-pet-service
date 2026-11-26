@@ -83,3 +83,11 @@ Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해�
 실제 MongoDB 통합 검사를 포함하려면 `PET_TEST_MONGODB_URI`를 테스트 전용 MongoDB URI로 지정한 뒤 `./gradlew test build`를 실행합니다. 설정하지 않으면 MongoDB 통합 검사는 건너뜁니다. 테스트는 전용 DB를 생성·정리하므로 개발·운영 데이터 계정을 그대로 사용하지 않습니다. Mock·웹 검사의 통과와 실제 MongoDB·실행 서버 검증은 구분합니다.
 
 실제 미디어 서비스 연동은 아직 구현하지 않았습니다. MySQL용 마이그레이션은 후속 작업입니다.
+
+## 예방접종 이력 등록
+
+`POST /api/pets/{petId}/vaccinations`는 auth-service가 발급한 Bearer 토큰을 검증하고, 현재 소유자이며 삭제되지 않은 반려동물에 접종 이력을 등록합니다. 인증되지 않은 요청은 401, 타인·없는·삭제된 동물은 404입니다. 임의 사용자 ID 헤더는 사용하지 않습니다.
+
+요청 예시: `{"vaccineNameId":"<접종명 UUID>","vaccinatedOn":"2026-11-01","nextVaccinationOn":null,"doseNumber":null,"hospitalName":null,"memo":null}`. 접종명 ID와 접종일은 필수이며 다른 필드는 생략하거나 null로 둘 수 있습니다. 날짜는 `YYYY-MM-DD`입니다. 이는 D12 확정 전 임시 입력 기준이며 차수·날짜의 추가 범위는 아직 정하지 않았습니다. 접종명은 MySQL에서 확인하고 등록 당시의 ID와 이름을 MongoDB의 해당 반려동물 문서에 함께 저장합니다. 표시명 보존은 D18 확정 전 임시 방식입니다. 없는 접종명은 404 `VACCINE_NAME_NOT_FOUND`, 접종명 DB 장애는 503 `VACCINE_QUERY_UNAVAILABLE`입니다.
+
+성공은 201과 등록 이력을 반환합니다. 이력 조회 API가 아직 없어 Location은 반환하지 않습니다. 이력은 동물 문서에 포함되므로 MongoDB의 문서 크기 제한에 영향을 받으며 추후 이력 규모와 조회·수정 정책에 따라 저장 구조를 재검토해야 합니다. 접종명 변경·삭제와 이력 저장 사이에는 서로 다른 DB에 걸친 원자적 보장이 없습니다.
