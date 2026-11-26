@@ -36,8 +36,9 @@ public class PetController {
     @GetMapping
     public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "4") int size) {
-        return petWebAdapter.getPets(page, size);
+            @RequestParam(defaultValue = "4") int size,
+            @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
+        return petWebAdapter.getPets(page, size, caregiverId);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

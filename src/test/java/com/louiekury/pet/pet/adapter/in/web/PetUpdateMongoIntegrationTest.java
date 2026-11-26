@@ -171,7 +171,8 @@ class PetUpdateMongoIntegrationTest {
             new Document("$set", new Document("breedId", "old-breed")
                 .append("registration.responseSnapshot", snapshot)));
 
-        var page = new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4));
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));
+        var page = new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4, "owner-a"));
         assertThat(page.getContent()).hasSize(1);
         assertThat(page.getContent().get(0).getBreedName()).isEqualTo("이전 품종");
     }
@@ -216,9 +217,11 @@ class PetUpdateMongoIntegrationTest {
                 .append("registration.responseSnapshot", snapshot)));
         Document before = stored("pet-1");
 
-        assertThatThrownBy(() -> new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4)))
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));
+        assertThatThrownBy(() -> new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4, "owner-a")))
             .isInstanceOfSatisfying(BusinessException.class,
                 error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", null)));
         mvc.perform(patch("/api/pets/pet-1").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"변경\"}"))
             .andExpect(status().isServiceUnavailable())

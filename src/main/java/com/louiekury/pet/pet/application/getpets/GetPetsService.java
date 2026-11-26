@@ -20,6 +20,9 @@ public class GetPetsService implements GetPetsUseCase {
 
     @Override
     public GetPetsResult getPets(GetPetsQuery query) {
+        if (query.getCaregiverId() == null || query.getCaregiverId().isBlank()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
         if (query.getPage() < 0 || query.getSize() < 1 || query.getSize() > 100) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
