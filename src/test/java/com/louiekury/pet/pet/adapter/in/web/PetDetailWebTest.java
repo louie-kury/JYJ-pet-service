@@ -22,6 +22,7 @@ class PetDetailWebTest {
         when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail), auth))
+            .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(get("/api/pets/pet-1").header("X-User-Id", "forged"))
             .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -37,6 +38,7 @@ class PetDetailWebTest {
             "MALE", true, new java.math.BigDecimal("5.2"), false, now, now));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail), auth))
+            .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(get("/api/pets/pet-1").header("Authorization", "Bearer valid").header("X-User-Id", "attacker"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.name").value("루이"))
@@ -52,6 +54,7 @@ class PetDetailWebTest {
         when(auth.require("Bearer valid")).thenReturn("member-1");
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
             service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(GetPetService.class)), auth))
+            .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")
                 .header("Authorization", "Bearer valid").header("X-User-Id", "attacker")

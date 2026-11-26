@@ -1,6 +1,6 @@
 # louie-kury-pet-service
 
-루이쿠리 반려동물 서비스입니다. Spring Boot·MySQL/JPA·MongoDB 기반 위에 반려동물 등록·목록 조회·수정 API를 제공합니다. 현재 이 기능들은 회원 연결 전 임시 무인증 방식이며 수정 API는 기본적으로 비활성화됩니다. 회원·로그인·소유자 연결, 상세 조회·삭제와 배포는 후속 작업입니다.
+루이쿠리 반려동물 서비스입니다. 반려동물 등록과 상세 조회에는 인증이 필요합니다. 목록과 수정은 소유자 미연결 데이터에 대한 임시 방식이며 수정 API는 기본적으로 비활성화됩니다. 인증된 목록·수정과 삭제는 후속 작업입니다.
 
 ## 개발 환경
 
@@ -15,6 +15,8 @@
 | 업무·API·로그 시간대 | `Asia/Seoul` / UTC+09:00 |
 
 접종명 기준 데이터는 MySQL, 나머지 반려동물 서비스 데이터는 MongoDB에 저장합니다. MongoDB 개발 DB 이름은 `louie_kury_pet_dev`입니다. 등록 기본정보는 `pets` 컬렉션에 저장합니다. 종은 `PetSpecies` enum의 DOG/CAT을 기준으로 하며 외부 요청·응답·저장 ID는 기존 `dog`/`cat`을 유지합니다. `pet_species`는 기존 품종 배열을 조회하는 호환 저장소로 사용합니다. DB 이름 설정만으로 마이그레이션 이력·필수 인덱스가 준비되지는 않습니다.
+
+등록·상세 조회의 인증에는 `pet.auth.jwks-uri`, `pet.auth.issuer`, `pet.auth.audience` 설정이 필요합니다. 등록 요청에는 `Authorization: Bearer <accessToken>`을 전달하며, 인증된 회원 ID를 소유자로 저장합니다.
 
 ## 실행 준비
 

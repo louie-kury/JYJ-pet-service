@@ -102,7 +102,7 @@ class CreatePetValidationTest {
         CreatePetService service = new CreatePetService(mock(GetPetBreedPort.class), mock(CreatePetPort.class),
             Clock.fixed(Instant.parse("2026-11-23T00:00:00Z"), ZoneOffset.UTC));
         return service.createPet(CreatePetCommand.of(name, "dog", breed, media, birth, sex, null,
-            weight, null, null));
+            weight, null, null, "member-1"));
     }
 
     private static void assertValidation(Runnable action) {

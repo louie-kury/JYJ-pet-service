@@ -43,8 +43,8 @@ class CreatePetServiceTest {
     }
 
     @Test
-    @DisplayName("인증 주체 없이 최소 정보로 등록하면 새 결과를 저장한다")
-    void registersWithoutMemberOrOptionalValues() {
+    @DisplayName("인증된 소유자의 최소 정보를 등록한다")
+    void registersWithMemberAndWithoutOptionalValues() {
         PetResult result = service.createPet(command(null, null, null, null));
         assertThat(result.getName()).isEqualTo("루이");
         assertThat(result.getSpecies().getSpeciesId()).isEqualTo("dog");
@@ -53,7 +53,7 @@ class CreatePetServiceTest {
         assertThat(result.getAge()).isNull();
         assertThat(result.getCreatedAt()).isEqualTo(NOW);
         assertThat(result.getUpdatedAt()).isEqualTo(NOW);
-        verify(insert).createPet(result, null);
+        verify(insert).createPet(result, null, "member-1");
         verifyNoInteractions(breeds);
     }
 
@@ -63,7 +63,7 @@ class CreatePetServiceTest {
         when(breeds.getPetBreedBySpeciesAndId(PetSpecies.DOG, "poodle"))
             .thenReturn(Optional.of(new PetBreed(PetSpecies.DOG, "poodle", "푸들")));
         PetResult result = service.createPet(CreatePetCommand.of("루이", "dog", "poodle", null,
-            LocalDate.of(2023, 5, 1), "FEMALE", false, new BigDecimal("5.123"), true, "request-1"));
+            LocalDate.of(2023, 5, 1), "FEMALE", false, new BigDecimal("5.123"), true, "request-1", "member-1"));
         assertThat(result.getBreed().getName()).isEqualTo("푸들");
         assertThat(result.getSex()).isEqualTo("FEMALE");
         assertThat(result.getIsNeutered()).isFalse();
@@ -71,7 +71,7 @@ class CreatePetServiceTest {
         assertThat(result.getBasicVaccinationCompleted()).isTrue();
         assertThat(result.getAge().getYears()).isEqualTo(3);
         assertThat(result.getAge().getMonths()).isEqualTo(6);
-        verify(insert).createPet(result, "request-1");
+        verify(insert).createPet(result, "request-1", "member-1");
     }
 
     @Test
@@ -115,7 +115,7 @@ class CreatePetServiceTest {
     @DisplayName("종 enum 외부 ID 이외의 별칭은 저장하지 않는다")
     void rejectsUnsupportedSpeciesIdentifiers(String id) {
         assertCode(() -> service.createPet(CreatePetCommand.of("루이", id, null, null, null,
-            "MALE", null, null, null, null)), ErrorCode.VALIDATION_ERROR);
+            "MALE", null, null, null, null, "member-1")), ErrorCode.VALIDATION_ERROR);
         verifyNoInteractions(breeds);
         verifyNoInteractions(insert);
     }
@@ -142,18 +142,29 @@ class CreatePetServiceTest {
         PetResult first = service.createPet(command(null, null, null, null));
         PetResult second = service.createPet(command(null, null, null, null));
         assertThat(first.getPetId()).isNotEqualTo(second.getPetId());
-        verify(insert, times(2)).createPet(any(PetResult.class), isNull());
+        verify(insert, times(2)).createPet(any(PetResult.class), isNull(), eq("member-1"));
     }
 
     @Test
     @DisplayName("저장 실패는 성공 결과로 변환하지 않는다")
     void propagatesStorageFailure() {
-        doThrow(new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE)).when(insert).createPet(any(), isNull());
+        doThrow(new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE)).when(insert).createPet(any(), isNull(), eq("member-1"));
         assertCode(() -> service.createPet(command(null, null, null, null)), ErrorCode.PERSISTENCE_UNAVAILABLE);
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    @DisplayName("소유자가 없거나 비어 있으면 등록하지 않는다")
+    void rejectsMissingOwner(String owner) {
+        var input = CreatePetCommand.of("루이", "dog", null, null, null,
+            "MALE", null, null, null, null, owner);
+        assertCode(() -> service.createPet(input), ErrorCode.UNAUTHORIZED);
+        verifyNoInteractions(insert, breeds);
+    }
+
     private static CreatePetCommand command(String breed, String media, LocalDate birth, String key) {
-        return CreatePetCommand.of("루이", "dog", breed, media, birth, "MALE", null, null, null, key);
+        return CreatePetCommand.of("루이", "dog", breed, media, birth, "MALE", null, null, null, key, "member-1");
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,8 +44,7 @@ public class PetController {
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> createPet(
             @Valid @RequestBody CreatePetRequestDto request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @RequestHeader(value = "Authorization", required = false) String authorization) {
-        String caregiverId = authorization == null ? null : authenticatedMember.require(authorization);
+            @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
         return petWebAdapter.createPet(request, idempotencyKey, caregiverId);
     }
 }
