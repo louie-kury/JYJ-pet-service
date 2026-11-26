@@ -37,8 +37,8 @@ public class PetController {
     public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size,
-            @RequestHeader(value = "Authorization", required = false) String authorization) {
-        return petWebAdapter.getPets(page, size, authenticatedMember.require(authorization));
+            @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
+        return petWebAdapter.getPets(page, size, caregiverId);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

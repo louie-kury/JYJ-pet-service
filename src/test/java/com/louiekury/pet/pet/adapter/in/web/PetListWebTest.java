@@ -53,6 +53,7 @@ class PetListWebTest {
             Clock.fixed(Instant.parse("2026-11-22T15:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(
                 new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), auth))
+            .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -92,6 +93,15 @@ class PetListWebTest {
     void rejectsAnonymousListing() throws Exception {
         mvc.perform(get("/api/pets"))
             .andExpect(status().isUnauthorized());
+        verifyNoInteractions(pets);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"page,abc", "size,abc"})
+    @DisplayName("인증이 없으면 잘못된 페이지 값보다 인증 실패를 우선한다")
+    void authenticatesBeforeBindingPagination(String field, String value) throws Exception {
+        mvc.perform(get("/api/pets").param(field, value))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
         verifyNoInteractions(pets);
     }
 
