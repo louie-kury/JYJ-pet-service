@@ -4,9 +4,11 @@ import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.louiekury.pet.vaccine.application.createvaccine.CreateVaccinePort;
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
+import com.louiekury.pet.vaccine.application.listvaccines.ListVaccinesPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
@@ -15,9 +17,19 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class VaccinePersistenceAdapter implements CreateVaccinePort {
+public class VaccinePersistenceAdapter implements CreateVaccinePort, ListVaccinesPort {
     private final JdbcTemplate jdbc;
     private final Clock clock;
+
+    @Override
+    public List<VaccineResult> listVaccines() {
+        try {
+            return jdbc.query("SELECT uuid, name FROM vaccine ORDER BY id",
+                (row, index) -> new VaccineResult(row.getString("uuid"), row.getString("name")));
+        } catch (DataAccessException exception) {
+            throw new BusinessException(ErrorCode.VACCINE_QUERY_UNAVAILABLE, exception);
+        }
+    }
 
     @Override
     public void createVaccine(VaccineResult vaccine) {
