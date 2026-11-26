@@ -23,13 +23,18 @@ public class PetPersistenceAdapter implements CreatePetPort {
 
     @Override
     public void createPet(PetResult result, String idempotencyKey) {
+        createPet(result, idempotencyKey, null);
+    }
+
+    @Override
+    public void createPet(PetResult result, String idempotencyKey, String caregiverId) {
         try {
             mongoTemplate.execute(PetMongoDocument.class, collection -> {
                 if (idempotencyKey != null) {
                     verifyRequestKeyIndex(collection.listIndexes().into(new ArrayList<>()));
                 }
                 Document document = new Document();
-                mongoTemplate.getConverter().write(PetMongoDocument.from(result, idempotencyKey), document);
+                mongoTemplate.getConverter().write(PetMongoDocument.from(result, idempotencyKey, caregiverId), document);
                 // 감사 시각과 완료 스냅샷을 같은 시각으로 준비해 한 번에 저장한다.
                 // MongoTemplate.insert의 감사 콜백이 시각을 다시 생성하지 않도록 명시적 insert를 사용한다.
                 try {

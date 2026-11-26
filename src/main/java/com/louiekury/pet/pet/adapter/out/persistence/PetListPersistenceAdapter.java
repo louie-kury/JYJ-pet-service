@@ -48,7 +48,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
         }
     }
 
-    private Map<String, Document> getBreedCatalogs(List<Document> pets) {
+    Map<String, Document> getBreedCatalogs(List<Document> pets) {
         Set<String> speciesIds = pets.stream().filter(pet -> pet.get("breedId") != null)
             .map(pet -> getString(pet, "speciesId", false)).collect(Collectors.toSet());
         Map<String, Document> catalogs = new HashMap<>();
@@ -62,7 +62,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
         return catalogs;
     }
 
-    private PetListData getPetData(Document pet, Map<String, Document> catalogs) {
+    PetListData getPetData(Document pet, Map<String, Document> catalogs) {
         String speciesId = getString(pet, "speciesId", false);
         PetSpecies species = PetSpecies.fromId(speciesId)
             .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));

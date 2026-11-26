@@ -36,9 +36,13 @@ public class PetMongoDocument extends BaseDocument {
     private Map<String, Object> registration;
 
     public static PetMongoDocument from(PetResult result, String idempotencyKey) {
+        return from(result, idempotencyKey, null);
+    }
+
+    public static PetMongoDocument from(PetResult result, String idempotencyKey, String caregiverId) {
         PetMongoDocument document = new PetMongoDocument();
         document.id = result.getPetId();
-        document.caregiverId = null;
+        document.caregiverId = caregiverId;
         document.name = result.getName();
         document.speciesId = result.getSpecies().getSpeciesId();
         document.breedId = result.getBreed() == null ? null : result.getBreed().getBreedId();

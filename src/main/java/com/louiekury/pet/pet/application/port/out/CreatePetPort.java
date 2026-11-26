@@ -5,4 +5,6 @@ import com.louiekury.pet.pet.application.createpet.PetResult;
 public interface CreatePetPort {
 
     void createPet(PetResult pet, String idempotencyKey);
+
+    void createPet(PetResult pet, String idempotencyKey, String caregiverId);
 }

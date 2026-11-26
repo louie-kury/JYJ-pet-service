@@ -59,7 +59,11 @@ public class CreatePetService implements CreatePetUseCase {
         }
         Period age = birth == null ? null : Period.between(birth, today);
         PetResult result = PetResult.of(pet, breed, now, age);
-        insertPort.createPet(result, key);
+        if (command.getCaregiverId() == null) {
+            insertPort.createPet(result, key);
+        } else {
+            insertPort.createPet(result, key, command.getCaregiverId());
+        }
         return result;
     }
     private static void require(boolean condition) {
