@@ -17,6 +17,8 @@ import java.util.Date;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.*;
 
 class AuthenticatedMemberTest {
@@ -58,6 +60,12 @@ class AuthenticatedMemberTest {
     @Test void acceptsValidSignedMemberId() throws Exception {
         assertThat(verifier.require(token("auth-service", "louie-services", "member-1", Instant.now().plusSeconds(300), key)))
             .isEqualTo("member-1");
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"bearer", "BEARER", "bEaReR"})
+    void acceptsCaseInsensitiveScheme(String scheme) throws Exception {
+        String signed = token("auth-service", "louie-services", "member-1", Instant.now().plusSeconds(300), key);
+        assertThat(verifier.require(scheme + signed.substring(6))).isEqualTo("member-1");
     }
     @Test void rejectsMissingAndInvalidToken() { rejects(null); rejects("Bearer nonsense"); }
     @Test void rejectsExpired() throws Exception { rejects(token("auth-service", "louie-services", "member-1", Instant.now().minusSeconds(120), key)); }

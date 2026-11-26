@@ -31,7 +31,7 @@ public class AuthenticatedMember {
     }
 
     public String require(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")
+        if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)
                 || authorization.substring(7).isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         if (jwksUri.isBlank() || issuer.isBlank() || audience.isBlank()) {
             throw new BusinessException(ErrorCode.AUTH_SERVICE_UNAVAILABLE);
