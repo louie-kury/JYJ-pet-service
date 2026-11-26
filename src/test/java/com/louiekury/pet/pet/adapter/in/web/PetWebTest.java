@@ -1,6 +1,7 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
+import com.louiekury.pet.global.security.AuthenticatedMember;
 import com.louiekury.pet.pet.application.port.out.CreatePetPort;
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
 import com.louiekury.pet.pet.application.createpet.CreatePetService;
@@ -31,6 +32,7 @@ class PetWebTest {
 
     private CreatePetPort insert;
     private MockMvc mvc;
+    private AuthenticatedMember auth;
 
     @BeforeEach
     void setUp() {
@@ -38,14 +40,20 @@ class PetWebTest {
         GetPetBreedPort breeds = mock(GetPetBreedPort.class);
         CreatePetService service = new CreatePetService(breeds, insert,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00Z"), ZoneOffset.UTC));
-        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), mock(com.louiekury.pet.global.security.AuthenticatedMember.class)))
+        auth = mock(AuthenticatedMember.class);
+        when(auth.require("Bearer valid")).thenReturn("member-1");
+        when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+        when(auth.require("Bearer invalid")).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+        when(auth.require("Bearer unavailable")).thenThrow(new BusinessException(ErrorCode.AUTH_SERVICE_UNAVAILABLE));
+        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), auth))
+            .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
     @DisplayName("고양이 enum의 외부 ID와 표시 이름을 기존 응답 구조로 반환한다")
     void preservesCatResponseContract() throws Exception {
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"루이\",\"speciesId\":\"cat\",\"sex\":\"MALE\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.data.species.speciesId").value("cat"))
@@ -57,7 +65,7 @@ class PetWebTest {
     @ValueSource(strings = {"DOG", "CAT", "rabbit"})
     @DisplayName("API는 enum 이름이나 미지원 종을 외부 ID 별칭으로 허용하지 않는다")
     void rejectsSpeciesAliases(String speciesId) throws Exception {
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"루이\",\"speciesId\":\"" + speciesId + "\",\"sex\":\"MALE\"}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
@@ -65,9 +73,9 @@ class PetWebTest {
     }
 
     @Test
-    @DisplayName("토큰과 사용자 없이 등록하면 201과 상세 및 한국시간 시각을 반환한다")
-    void createsWithoutAuthentication() throws Exception {
-        var response = mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+    @DisplayName("인증된 등록은 201과 상세 및 한국시간 시각을 반환한다")
+    void createsWithAuthentication() throws Exception {
+        var response = mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .header("X-User-Id", "untrusted-user")
                 .content("{\"name\":\"  루이  \",\"speciesId\":\"dog\",\"sex\":\"MALE\"}"))
             .andExpect(status().isCreated())
@@ -105,7 +113,7 @@ class PetWebTest {
     })
     @DisplayName("잘못된 필수값·주입 필드·타입·날짜는 400이며 저장하지 않는다")
     void rejectsMalformedOrInvalidInput(String json) throws Exception {
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON).content(json))
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON).content(json))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
             .andExpect(jsonPath("$.data").doesNotExist());
@@ -116,7 +124,7 @@ class PetWebTest {
     @ValueSource(strings = {"", "has space", "한글", "!invalid"})
     @DisplayName("제공된 재시도 키가 형식에 맞지 않으면 저장하지 않는다")
     void rejectsInvalidKeys(String key) throws Exception {
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .header("Idempotency-Key", key).content(minimumJson()))
             .andExpect(status().isBadRequest());
         verifyNoInteractions(insert);
@@ -125,7 +133,7 @@ class PetWebTest {
     @Test
     @DisplayName("미연동 프로필은 503을 반환하고 파일을 무시한 채 동물을 저장하지 않는다")
     void rejectsUnverifiedMedia() throws Exception {
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"루이\",\"speciesId\":\"dog\",\"sex\":\"MALE\",\"profileMediaId\":\"media\"}"))
             .andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.code").value("MEDIA_SERVICE_UNAVAILABLE"));
@@ -133,15 +141,51 @@ class PetWebTest {
     }
 
     @Test
-    @DisplayName("익명 중복 키는 기존 상세를 노출하지 않고 409를 반환한다")
+    @DisplayName("중복 키는 기존 상세를 노출하지 않고 409를 반환한다")
     void duplicateKeyDoesNotRevealExistingPet() throws Exception {
-        doThrow(new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT)).when(insert).createPet(any(), eq("same-key"));
-        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON)
+        doThrow(new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT)).when(insert).createPet(any(), eq("same-key"), eq("member-1"));
+        mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .header("Idempotency-Key", "same-key").content(minimumJson()))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").value("IDEMPOTENCY_CONFLICT"))
             .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(header().doesNotExist("Location"));
+    }
+
+    @Test
+    @DisplayName("토큰이 없으면 등록하지 않는다")
+    void rejectsMissingToken() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")
+                .header("X-User-Id", "forged").contentType(MediaType.APPLICATION_JSON).content(minimumJson()))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        verifyNoInteractions(insert);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{broken", "{\"speciesId\":\"dog\",\"sex\":\"MALE\"}"})
+    @DisplayName("토큰이 없으면 잘못된 JSON과 필수값 누락을 모두 인증 실패로 처리한다")
+    void rejectsMissingTokenBeforeInvalidBody(String body) throws Exception {
+        mvc.perform(post("/api/pets").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        verifyNoInteractions(insert);
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 토큰은 등록하지 않는다")
+    void rejectsInvalidToken() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")
+                .header("Authorization", "Bearer invalid").contentType(MediaType.APPLICATION_JSON).content(minimumJson()))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        verifyNoInteractions(insert);
+    }
+
+    @Test
+    @DisplayName("인증 서비스 장애는 등록하지 않고 503을 반환한다")
+    void rejectsWhenAuthenticationUnavailable() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")
+                .header("Authorization", "Bearer unavailable").contentType(MediaType.APPLICATION_JSON).content(minimumJson()))
+            .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("AUTH_SERVICE_UNAVAILABLE"));
+        verifyNoInteractions(insert);
     }
 
     private static String minimumJson() {

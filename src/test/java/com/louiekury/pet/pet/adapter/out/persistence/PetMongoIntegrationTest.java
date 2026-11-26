@@ -110,8 +110,9 @@ class PetMongoIntegrationTest {
             (species, breedId) -> Optional.empty(), adapter,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00.123456789Z"), ZoneOffset.UTC));
         PetResult result = service.createPet(CreatePetCommand.of("루이", "dog", null, null,
-            null, "MALE", null, null, null, null));
+            null, "MALE", null, null, null, null, "member-1"));
         Document stored = template.getCollection("pets").find(new Document("_id", result.getPetId())).first();
+        assertThat(stored.getString("caregiverId")).isEqualTo("member-1");
         assertThat(stored.getDate("createdAt").toInstant()).isEqualTo(result.getCreatedAt());
         assertThat(stored.getDate("updatedAt").toInstant()).isEqualTo(result.getUpdatedAt());
     }
@@ -249,7 +250,7 @@ class PetMongoIntegrationTest {
         CreatePetService service = new CreatePetService(new PetBreedPersistenceAdapter(template), adapter,
             Clock.fixed(CREATED, ZoneOffset.UTC));
         PetResult result = service.createPet(CreatePetCommand.of("루이", speciesId, null, null,
-            null, "MALE", null, null, null, null));
+            null, "MALE", null, null, null, null, "member-1"));
         Document stored = template.getCollection("pets").find(new Document("_id", result.getPetId())).first();
         assertThat(stored.getString("speciesId")).isEqualTo(speciesId);
         assertThat(result.getSpecies().getName()).isEqualTo(speciesId.equals("dog") ? "강아지" : "고양이");

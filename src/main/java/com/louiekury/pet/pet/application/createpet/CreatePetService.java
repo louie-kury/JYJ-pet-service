@@ -27,6 +27,9 @@ public class CreatePetService implements CreatePetUseCase {
 
     @Override
     public PetResult createPet(CreatePetCommand command) {
+        if (command.getCaregiverId() == null || command.getCaregiverId().isBlank()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
         String key = command.getIdempotencyKey();
         if (key != null && !key.matches("[A-Za-z0-9_.:-]{1,128}")) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
@@ -59,11 +62,7 @@ public class CreatePetService implements CreatePetUseCase {
         }
         Period age = birth == null ? null : Period.between(birth, today);
         PetResult result = PetResult.of(pet, breed, now, age);
-        if (command.getCaregiverId() == null) {
-            insertPort.createPet(result, key);
-        } else {
-            insertPort.createPet(result, key, command.getCaregiverId());
-        }
+        insertPort.createPet(result, key, command.getCaregiverId());
         return result;
     }
     private static void require(boolean condition) {
