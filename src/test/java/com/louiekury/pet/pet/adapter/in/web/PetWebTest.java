@@ -45,7 +45,7 @@ class PetWebTest {
         when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         when(auth.require("Bearer invalid")).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         when(auth.require("Bearer unavailable")).thenThrow(new BusinessException(ErrorCode.AUTH_SERVICE_UNAVAILABLE));
-        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class)), auth))
+        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }

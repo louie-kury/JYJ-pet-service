@@ -1,7 +1,6 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.web.response.ApiResponse;
-import com.louiekury.pet.global.security.AuthenticatedMember;
 import org.springframework.web.bind.annotation.PathVariable;
 import com.louiekury.pet.pet.adapter.in.web.dto.request.CreatePetRequestDto;
 import com.louiekury.pet.pet.adapter.in.web.dto.response.PetDetailResponseDto;
@@ -25,12 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class PetController {
 
     private final PetWebAdapter petWebAdapter;
-    private final AuthenticatedMember authenticatedMember;
 
     @GetMapping("/{petId}")
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> getPet(
-            @PathVariable String petId, @RequestHeader(value = "Authorization", required = false) String authorization) {
-        return petWebAdapter.getPet(petId, authenticatedMember.require(authorization));
+            @PathVariable String petId,
+            @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
+        return petWebAdapter.getPet(petId, caregiverId);
     }
 
     @GetMapping
