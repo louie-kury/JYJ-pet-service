@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -92,6 +93,22 @@ class PetListWebTest {
     @DisplayName("인증 없는 목록 요청은 거부한다")
     void rejectsAnonymousListing() throws Exception {
         mvc.perform(get("/api/pets"))
+            .andExpect(status().isUnauthorized());
+        verifyNoInteractions(pets);
+    }
+
+    @Test
+    void headWithValidTokenSucceeds() throws Exception {
+        mvc.perform(head("/api/pets").header("Authorization", "Bearer valid"))
+            .andExpect(status().isOk());
+        ArgumentCaptor<GetPetsQuery> query = ArgumentCaptor.forClass(GetPetsQuery.class);
+        verify(pets).getPets(query.capture());
+        assertThat(query.getValue().getCaregiverId()).isEqualTo("owner-a");
+    }
+
+    @Test
+    void headWithoutTokenIsUnauthorized() throws Exception {
+        mvc.perform(head("/api/pets"))
             .andExpect(status().isUnauthorized());
         verifyNoInteractions(pets);
     }
