@@ -49,7 +49,7 @@ class PetUpdateMongoIntegrationTest {
         var service = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo), new PetBreedPersistenceAdapter(mongo),
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
-            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service)))
+            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 

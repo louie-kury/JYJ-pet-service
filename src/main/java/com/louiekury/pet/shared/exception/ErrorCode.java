@@ -17,6 +17,7 @@ public enum ErrorCode {
     PERSISTENCE_UNAVAILABLE("반려동물을 저장할 수 없습니다."),
     PET_QUERY_UNAVAILABLE("반려동물 목록을 조회할 수 없습니다."),
     IDEMPOTENCY_CONFLICT("이미 사용된 등록 요청 키입니다."),
+    AUTH_SERVICE_UNAVAILABLE("인증 서비스를 사용할 수 없습니다."),
     UNAUTHORIZED("인증이 필요합니다."),
     FORBIDDEN("접근 권한이 없습니다."),
     NOT_FOUND("대상을 찾을 수 없습니다."),

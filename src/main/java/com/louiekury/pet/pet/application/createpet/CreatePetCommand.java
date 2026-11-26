@@ -22,11 +22,19 @@ public class CreatePetCommand {
     private final BigDecimal weight;
     private final Boolean basicVaccinationCompleted;
     private final String idempotencyKey;
+    private final String caregiverId;
 
     public static CreatePetCommand of(String name, String speciesId, String breedId,
             String profileMediaId, LocalDate birth, String sex, Boolean isNeutered,
             BigDecimal weight, Boolean basicVaccinationCompleted, String idempotencyKey) {
-        return CreatePetCommand.builder().name(name).speciesId(speciesId).breedId(breedId)
+        return of(name, speciesId, breedId, profileMediaId, birth, sex, isNeutered, weight,
+            basicVaccinationCompleted, idempotencyKey, null);
+    }
+
+    public static CreatePetCommand of(String name, String speciesId, String breedId,
+            String profileMediaId, LocalDate birth, String sex, Boolean isNeutered,
+            BigDecimal weight, Boolean basicVaccinationCompleted, String idempotencyKey, String caregiverId) {
+        return CreatePetCommand.builder().caregiverId(caregiverId).name(name).speciesId(speciesId).breedId(breedId)
             .profileMediaId(profileMediaId).birth(birth).sex(sex).isNeutered(isNeutered)
             .weight(weight).basicVaccinationCompleted(basicVaccinationCompleted)
             .idempotencyKey(idempotencyKey).build();
