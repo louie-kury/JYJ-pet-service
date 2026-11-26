@@ -2,6 +2,7 @@ package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.security.AuthenticatedMember;
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
+import com.louiekury.pet.pet.application.deletepet.DeletePetService;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,26 @@ class PetMvcAuthConfigTest {
         @Bean PetRegistrationAuthInterceptor interceptor(AuthenticatedMember auth) { return new PetRegistrationAuthInterceptor(auth); }
         @Bean PetController petController(PetWebAdapter adapter) { return new PetController(adapter); }
         @Bean PetUpdateController updateController(PetWebAdapter adapter) { return new PetUpdateController(adapter); }
+        @Bean DeletePetService deletePetService() { return mock(DeletePetService.class); }
+        @Bean PetDeleteController deleteController(DeletePetService service) { return new PetDeleteController(service); }
         @Bean GlobalExceptionHandler exceptionHandler() { return new GlobalExceptionHandler(); }
+    }
+
+    @Test void deleteUsesConfiguredInterceptor() throws Exception {
+        try (var context = context()) {
+            var auth = context.getBean(AuthenticatedMember.class);
+            var service = context.getBean(DeletePetService.class);
+            when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
+            when(auth.require("Bearer valid")).thenReturn("owner-a");
+            var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+            mvc.perform(delete("/api/pets/pet-1").header("X-User-Id", "owner-a"))
+                .andExpect(status().isUnauthorized());
+            verifyNoInteractions(service);
+            mvc.perform(delete("/api/pets/pet-1").header("Authorization", "Bearer valid")
+                    .header("X-User-Id", "attacker"))
+                .andExpect(status().isNoContent()).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(""));
+            verify(service).delete("pet-1", "owner-a");
+        }
     }
 
     @Test void patchUsesConfiguredInterceptor() throws Exception {
