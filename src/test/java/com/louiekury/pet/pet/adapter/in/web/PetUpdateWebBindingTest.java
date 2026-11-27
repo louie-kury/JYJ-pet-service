@@ -9,6 +9,8 @@ import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -18,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,5 +46,28 @@ class PetUpdateWebBindingTest {
         verify(update).updatePet(eq("pet"), changes.capture(), eq("owner"));
         assertThat(changes.getValue()).containsEntry("breedId", null).containsEntry("name", "루이")
             .doesNotContainKey("birth");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "{\"name\":null}", "{\"name\":\"   \"}",
+        "{\"speciesId\":null}", "{\"speciesId\":\"\"}",
+        "{\"sex\":null}", "{\"sex\":\"   \"}"
+    })
+    void rejectsPresentNullOrBlankRequiredFields(String body) throws Exception {
+        UpdatePetUseCase update = mock(UpdatePetUseCase.class);
+        var adapter = new PetWebAdapter(mock(CreatePetUseCase.class), mock(GetPetsUseCase.class),
+            update, mock(GetPetUseCase.class));
+        var mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(adapter))
+            .setMessageConverters(RequestTestConverter.create())
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+
+        mvc.perform(patch("/api/pets/pet")
+                .requestAttr(PetRegistrationAuthInterceptor.CAREGIVER_ID, "owner")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+            .andExpect(status().isBadRequest());
+        verifyNoInteractions(update);
     }
 }
