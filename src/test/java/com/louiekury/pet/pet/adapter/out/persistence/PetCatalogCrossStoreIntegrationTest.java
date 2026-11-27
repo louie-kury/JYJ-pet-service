@@ -38,6 +38,7 @@ class PetCatalogCrossStoreIntegrationTest {
     private String dogId;
     private String catId;
     private String poodleId;
+    private String rabbitId;
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-27T00:00:00Z"), ZoneOffset.UTC);
 
     @BeforeAll
@@ -49,6 +50,7 @@ class PetCatalogCrossStoreIntegrationTest {
         dogId = jdbc.queryForObject("SELECT uuid FROM species WHERE name = ?", String.class, "강아지");
         catId = jdbc.queryForObject("SELECT uuid FROM species WHERE name = ?", String.class, "고양이");
         poodleId = jdbc.queryForObject("SELECT uuid FROM breed WHERE name = ?", String.class, "푸들");
+        rabbitId = jdbc.queryForObject("SELECT uuid FROM species WHERE name = ?", String.class, "토끼");
         client = MongoClients.create(System.getenv("PET_TEST_MONGODB_URI"));
         mongo = new MongoTemplate(client, "pet_catalog_cross_test_" + UUID.randomUUID().toString().replace("-", ""));
     }
@@ -79,6 +81,17 @@ class PetCatalogCrossStoreIntegrationTest {
         var changed = update.updatePet(result.getPetId(), new HashMap<>(Map.of("name", "수정")), "owner");
         assertThat(changed.getName()).isEqualTo("수정");
         assertThat(changed.getBreed().getName()).isEqualTo("푸들");
+    }
+
+    @Test
+    void createsPetWithSpeciesAddedInMysql() {
+        var create = new CreatePetService(breeds, species, new PetPersistenceAdapter(mongo), clock);
+        var result = create.createPet(CreatePetCommand.of("토리", rabbitId, null, null, null,
+            "FEMALE", null, null, null, null, "rabbit-owner"));
+        assertThat(result.getSpecies().getSpeciesId()).isEqualTo(rabbitId);
+        assertThat(result.getSpecies().getName()).isEqualTo("토끼");
+        assertThat(mongo.getCollection("pets").find(new org.bson.Document("_id", result.getPetId())).first()
+            .getString("speciesId")).isEqualTo(rabbitId);
     }
 
     @Test

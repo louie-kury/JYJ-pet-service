@@ -85,6 +85,31 @@ class PetListPersistenceAdapterTest {
         assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
     }
 
+    @Test
+    @DisplayName("목록에서 종·품종을 한 번씩 묶어 조회한다")
+    void loadsCatalogInBatches() {
+        var speciesPort = mock(com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort.class);
+        var breedPort = mock(com.louiekury.pet.pet.application.port.out.GetPetBreedPort.class);
+        var dog = new com.louiekury.pet.pet.domain.PetSpecies("dog", "강아지");
+        var poodle = new com.louiekury.pet.pet.domain.PetBreed(dog, "poodle", "푸들");
+        var species = java.util.Map.of("dog", dog);
+        when(speciesPort.getPetSpeciesByIds(java.util.Set.of("dog"))).thenReturn(species);
+        when(breedPort.getPetBreedsByIds(species, java.util.Set.of("poodle")))
+            .thenReturn(java.util.Map.of("poodle", poodle));
+        var first = new Document("_id", "a").append("name", "a").append("speciesId", "dog")
+            .append("breedId", "poodle").append("sex", "MALE");
+        var second = new Document("_id", "b").append("name", "b").append("speciesId", "dog")
+            .append("breedId", "poodle").append("sex", "FEMALE");
+        when(template.count(any(Query.class), eq("pets"))).thenReturn(2L);
+        when(template.find(any(Query.class), eq(Document.class), eq("pets"))).thenReturn(List.of(first, second));
+        var result = new PetListPersistenceAdapter(template, speciesPort, breedPort)
+            .getPets(GetPetsQuery.of(0, 4, "owner"));
+        assertThat(result.getContent()).extracting(item -> item.getBreedName()).containsExactly("푸들", "푸들");
+        verify(speciesPort).getPetSpeciesByIds(java.util.Set.of("dog"));
+        verify(breedPort).getPetBreedsByIds(species, java.util.Set.of("poodle"));
+        org.mockito.Mockito.verifyNoMoreInteractions(speciesPort, breedPort);
+    }
+
     private static void assertCode(Runnable action, ErrorCode code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(code));

@@ -13,9 +13,10 @@ import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.springframework.dao.DataAccessException;
@@ -43,7 +44,7 @@ public class PetListPersistenceAdapter implements GetPetsPort {
             page.fields().include("_id", "name", "speciesId", "breedId", "profileMediaId", "birth", "sex",
                 "registration.responseSnapshot.breed", "registration.responseSnapshot.species.speciesId");
             List<Document> pets = mongoTemplate.find(page, Document.class, "pets");
-            CatalogCache catalogs = new CatalogCache();
+            CatalogCache catalogs = getCatalogs(pets);
             return PetListPage.of(pets.stream().map(pet -> getPetData(pet, catalogs)).toList(), total);
         } catch (DataAccessException | MongoException exception) {
             throw new BusinessException(ErrorCode.PET_QUERY_UNAVAILABLE, exception);
@@ -51,14 +52,30 @@ public class PetListPersistenceAdapter implements GetPetsPort {
     }
 
     static class CatalogCache {
-        final Map<String, PetSpecies> species = new HashMap<>();
-        final Map<String, String> breeds = new HashMap<>();
+        final Map<String, PetSpecies> species;
+        final Map<String, PetBreed> breeds;
+
+        CatalogCache(Map<String, PetSpecies> species, Map<String, PetBreed> breeds) {
+            this.species = species;
+            this.breeds = breeds;
+        }
+    }
+
+    CatalogCache getCatalogs(List<Document> pets) {
+        Set<String> speciesIds = pets.stream().map(pet -> getString(pet, "speciesId", false))
+            .collect(Collectors.toSet());
+        Set<String> breedIds = pets.stream().map(pet -> getString(pet, "breedId", true))
+            .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Map<String, PetSpecies> species = speciesPort.getPetSpeciesByIds(speciesIds);
+        return new CatalogCache(species, breedPort.getPetBreedsByIds(species, breedIds));
     }
 
     PetListData getPetData(Document pet, CatalogCache catalogs) {
         String speciesId = getString(pet, "speciesId", false);
-        PetSpecies species = catalogs.species.computeIfAbsent(speciesId, id -> speciesPort.getPetSpecies(id)
-            .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE)));
+        PetSpecies species = catalogs.species.get(speciesId);
+        if (species == null) {
+            throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
+        }
         String breedId = getString(pet, "breedId", true);
         String breedName = breedId == null ? null : getBreedName(pet, species, breedId, catalogs);
         String birth = getString(pet, "birth", true);
@@ -77,15 +94,10 @@ public class PetListPersistenceAdapter implements GetPetsPort {
     }
 
     private String getBreedName(Document pet, PetSpecies species, String breedId, CatalogCache catalogs) {
-        String key = species.getSpeciesId() + "\u0000" + breedId;
-        String found = catalogs.breeds.get(key);
-        if (found == null) {
-            found = breedPort.getPetBreedBySpeciesAndId(species, breedId).map(PetBreed::getName).orElse(null);
-            if (found != null) {
-                catalogs.breeds.put(key, found);
-            }
+        PetBreed found = catalogs.breeds.get(breedId);
+        if (found != null && species.getSpeciesId().equals(found.getSpecies().getSpeciesId())) {
+            return found.getName();
         }
-        if (found != null) return found;
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
                 && snapshot.get("species") instanceof Map<?, ?> savedSpecies

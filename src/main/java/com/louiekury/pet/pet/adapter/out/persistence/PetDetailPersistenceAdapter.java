@@ -26,13 +26,17 @@ public class PetDetailPersistenceAdapter implements GetPetPort {
 
     @Override
     public Optional<Data> getPet(String id, String caregiverId) {
-        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        if (caregiverId == null || caregiverId.isBlank()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
         try {
             Criteria criteria = Criteria.where("_id").is(id).and("caregiverId").is(caregiverId)
                 .and("deletedAt").is(null);
             Document doc = mongo.findOne(Query.query(criteria), Document.class, "pets");
-            if (doc == null) return Optional.empty();
-            PetListData summary = listAdapter.getPetData(doc, new PetListPersistenceAdapter.CatalogCache());
+            if (doc == null) {
+                return Optional.empty();
+            }
+            PetListData summary = listAdapter.getPetData(doc, listAdapter.getCatalogs(java.util.List.of(doc)));
             Object value = doc.get("weight");
             BigDecimal weight = value == null ? null : ((Decimal128) value).bigDecimalValue();
             return Optional.of(new Data(summary, doc.getBoolean("isNeutered"), weight,
@@ -44,8 +48,12 @@ public class PetDetailPersistenceAdapter implements GetPetPort {
     }
 
     private static Instant instant(Object value) {
-        if (value instanceof Date date) return date.toInstant();
-        if (value instanceof Instant instant) return instant;
+        if (value instanceof Date date) {
+            return date.toInstant();
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
         throw new BusinessException(ErrorCode.PET_QUERY_UNAVAILABLE);
     }
 }

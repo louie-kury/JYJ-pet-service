@@ -94,6 +94,6 @@ Atlas DB 사용자의 접근 권한과 네트워크 접근 설정을 준비해�
 ./gradlew catalogMigration
 ```
 
-기본 실행은 읽기 전용 사전 확인이며 `CATALOG_PLAN`만 출력합니다. `apply`는 MySQL 기준 데이터를 먼저 커밋하고 MongoDB의 동물·등록 스냅샷 참조를 갱신합니다. 두 DB를 함께 롤백하지 않으므로 중단 시 서비스를 시작하지 말고 원인을 확인한 뒤 동일 명령을 재실행합니다. 완료 후 데이터와 API를 확인한 다음에 서비스를 시작합니다. `dog`·`cat` 등 기존 ID는 UUID로 바뀌므로 클라이언트와 연동 데이터도 함께 전환해야 합니다. 상세 내용은 `docs/adr/0004-species-breed-mysql.md`를 참고합니다.
+기본 실행은 읽기 전용 사전 확인이며 `CATALOG_PLAN`만 출력합니다. `apply`는 MySQL 기준 데이터를 먼저 커밋하고 MongoDB의 동물·등록 스냅샷 참조를 갱신합니다. 두 DB를 함께 롤백하지 않으므로 중단 시 서비스를 시작하지 말고 원인을 확인한 뒤 동일 명령을 재실행합니다. 완료 후 데이터와 API를 확인한 다음에 서비스를 시작합니다. `dog`·`cat` 등 기존 ID는 UUID로 바뀌므로 클라이언트와 연동 데이터도 함께 전환해야 합니다. MySQL에서 `SELECT uuid, name FROM species`와 `SELECT uuid, species_id, name FROM breed`로 전환된 기준 ID를 확인할 수 있습니다. 현재 서비스에는 종 목록 조회 API가 구현되어 있지 않습니다. 상세 내용은 `docs/adr/0004-species-breed-mysql.md`를 참고합니다.
 
 실제 미디어 서비스 연동은 아직 구현하지 않았습니다.

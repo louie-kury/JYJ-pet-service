@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,14 +26,16 @@ public final class CatalogMigrationMain {
             String mysqlUrl = required("MYSQL_MIGRATION_URL");
             String mysqlUser = required("MYSQL_MIGRATION_USERNAME");
             String mysqlPassword = System.getenv("MYSQL_MIGRATION_PASSWORD");
-            if (mysqlPassword == null) throw new IllegalArgumentException("MySQL 비밀번호가 필요합니다.");
+            if (mysqlPassword == null) {
+                throw new IllegalArgumentException("MySQL 비밀번호가 필요합니다.");
+            }
             try (var mongo = MongoClients.create(mongoUri);
                     var sql = DriverManager.getConnection(mysqlUrl, mysqlUser, mysqlPassword)) {
                 MongoDatabase database = mongo.getDatabase(required("MONGODB_MIGRATION_DATABASE"));
                 Plan plan = plan(database);
                 validateMysql(sql, plan);
                 System.out.println("CATALOG_PLAN species=" + plan.species.size() + " breeds=" + plan.breeds.size()
-                    + " pets=" + plan.pets.size());
+                    + " pets=" + plan.petCount);
                 if ("apply".equals(args[0])) {
                     applyMysql(sql, plan);
                     applyMongo(database, plan);
@@ -50,7 +51,9 @@ public final class CatalogMigrationMain {
 
     private static String required(String name) {
         String value = System.getenv(name);
-        if (value == null || value.isBlank()) throw new IllegalArgumentException(name + " 누락");
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " 누락");
+        }
         return value;
     }
 
@@ -64,9 +67,13 @@ public final class CatalogMigrationMain {
                 : text(species.get("name"));
             plan.addSpecies(legacyId, name);
             Object breeds = species.get("breeds");
-            if (!(breeds instanceof List<?>)) throw new CatalogProblem("품종 목록이 올바르지 않습니다.");
+            if (!(breeds instanceof List<?>)) {
+                throw new CatalogProblem("품종 목록이 올바르지 않습니다.");
+            }
             for (Object item : (List<?>) breeds) {
-                if (!(item instanceof Document breed)) throw new CatalogProblem("품종 형식이 올바르지 않습니다.");
+                if (!(item instanceof Document breed)) {
+                    throw new CatalogProblem("품종 형식이 올바르지 않습니다.");
+                }
                 plan.addBreed(legacyId, text(breed.get("breedId")), text(breed.get("name")));
             }
         }
@@ -82,7 +89,7 @@ public final class CatalogMigrationMain {
                     plan.requireBreed(savedId, text(savedBreed.get("breedId")));
                 }
             }
-            plan.pets.add(pet);
+            plan.petCount++;
         }
         return plan;
     }
@@ -165,7 +172,7 @@ public final class CatalogMigrationMain {
     }
 
     private static void applyMongo(MongoDatabase database, Plan plan) {
-        for (Document pet : plan.pets) {
+        for (Document pet : database.getCollection("pets").find()) {
             String oldSpecies = text(pet.get("speciesId"));
             String legacy = plan.speciesLegacy(oldSpecies);
             Document changes = new Document("speciesId", plan.species.get(legacy).uuid);
@@ -208,30 +215,42 @@ public final class CatalogMigrationMain {
     static final class Plan {
         final Map<String, Item> species = new LinkedHashMap<>();
         final Map<String, Item> breeds = new LinkedHashMap<>();
-        final List<Document> pets = new ArrayList<>();
+        long petCount;
 
         void addSpecies(String legacy, String name) {
-            if (name.codePointCount(0, name.length()) > 50) throw new CatalogProblem("종 이름이 너무 깁니다.");
+            if (name.codePointCount(0, name.length()) > 50) {
+                throw new CatalogProblem("종 이름이 너무 깁니다.");
+            }
             Item old = species.putIfAbsent(legacy, new Item(legacy, null, uuid("species", legacy), name));
-            if (old != null && !old.name.equals(name)) throw new CatalogProblem("종 이름 충돌");
+            if (old != null && !old.name.equals(name)) {
+                throw new CatalogProblem("종 이름 충돌");
+            }
         }
 
         void addBreed(String parent, String legacy, String name) {
-            if (name.codePointCount(0, name.length()) > 50) throw new CatalogProblem("품종 이름이 너무 깁니다.");
+            if (name.codePointCount(0, name.length()) > 50) {
+                throw new CatalogProblem("품종 이름이 너무 깁니다.");
+            }
             String key = parent + "\u0000" + legacy;
             Item old = breeds.putIfAbsent(key, new Item(legacy, parent, uuid("breed", key), name));
-            if (old != null) throw new CatalogProblem("품종 식별자 중복");
+            if (old != null) {
+                throw new CatalogProblem("품종 식별자 중복");
+            }
         }
 
         String speciesLegacy(String value) {
-            if (species.containsKey(value)) return value;
+            if (species.containsKey(value)) {
+                return value;
+            }
             return species.values().stream().filter(item -> item.uuid.equals(value)).map(item -> item.legacy)
                 .findFirst().orElseThrow(() -> new CatalogProblem("종 참조를 찾을 수 없습니다."));
         }
 
         Item requireBreed(String parent, String value) {
             Item direct = breeds.get(parent + "\u0000" + value);
-            if (direct != null) return direct;
+            if (direct != null) {
+                return direct;
+            }
             return breeds.values().stream().filter(item -> item.parent.equals(parent) && item.uuid.equals(value))
                 .findFirst().orElseThrow(() -> new CatalogProblem("품종 참조를 찾을 수 없습니다."));
         }

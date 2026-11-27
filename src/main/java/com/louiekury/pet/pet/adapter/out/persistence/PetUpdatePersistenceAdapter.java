@@ -36,7 +36,9 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     public Optional<Data> find(String id, Map<String, Object> changes, String caregiverId) {
         try {
             Document doc = mongo.findOne(Query.query(eligible(id, caregiverId)), Document.class, "pets");
-            if (doc == null) return Optional.empty();
+            if (doc == null) {
+                return Optional.empty();
+            }
             String species = doc.getString("speciesId");
             String breed = doc.getString("breedId");
             boolean resolveBreedName = Objects.equals(species, changes.getOrDefault("speciesId", species))
@@ -74,17 +76,25 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     }
 
     private Instant instant(Object value) {
-        if (value instanceof Date date) return date.toInstant();
-        if (value instanceof Instant instant) return instant;
+        if (value instanceof Date date) {
+            return date.toInstant();
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
         throw new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE);
     }
 
     private String breedName(Document pet, String species, String breed) {
-        if (breed == null) return null;
+        if (breed == null) {
+            return null;
+        }
         PetSpecies speciesData = speciesPort.getPetSpecies(species)
             .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
         String found = breedPort.getPetBreedBySpeciesAndId(speciesData, breed).map(PetBreed::getName).orElse(null);
-        if (found != null) return found;
+        if (found != null) {
+            return found;
+        }
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
                 && snapshot.get("species") instanceof Map<?, ?> savedSpecies
