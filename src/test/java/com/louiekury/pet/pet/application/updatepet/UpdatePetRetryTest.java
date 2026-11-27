@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 class UpdatePetRetryTest {
     private final UpdatePetPort port = mock(UpdatePetPort.class);
     private final Instant now = Instant.parse("2026-11-26T00:00:00Z");
-    private final UpdatePetService service = new UpdatePetService(port, mock(GetPetBreedPort.class),
+    private final UpdatePetService service = new UpdatePetService(port, mock(GetPetBreedPort.class), com.louiekury.pet.pet.support.CatalogFixtures.species(),
         Clock.fixed(now, ZoneOffset.UTC));
     private final UpdatePetPort.Data pet = new UpdatePetPort.Data("pet", "루이", "dog", null, null,
         null, null, "MALE", null, null, null, now, now);

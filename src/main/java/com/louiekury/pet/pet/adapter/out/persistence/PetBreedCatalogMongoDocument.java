@@ -14,7 +14,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.FieldType;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
-/** 기존 종 문서의 품종 배열만 조회한다. 종 이름·종류의 기준은 enum이다. */
+/** 이관 전 MongoDB 품종 문서의 기존 타입 별칭을 보존한다. */
 @Getter
 @TypeAlias("com.louiekury.pet.registration.adapter.out.persistence.PetBreedCatalogMongoDocument")
 @Document("pet_species")

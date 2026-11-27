@@ -45,6 +45,7 @@ dependencies {
     migrationImplementation 'org.liquibase:liquibase-core:5.0.4'
     migrationImplementation 'org.liquibase.ext:liquibase-mongodb:5.0.4'
     migrationRuntimeOnly 'org.slf4j:slf4j-nop:2.0.18'
+    migrationRuntimeOnly 'com.mysql:mysql-connector-j:9.7.0'
 }
 
 dependencyManagement {
@@ -73,4 +74,13 @@ tasks.named('test') {
     useJUnitPlatform()
     dependsOn tasks.named('migrationClasses')
     systemProperty 'pet.mongoMigrationClasspath', sourceSets.migration.runtimeClasspath.asPath
+}
+
+// 기본값은 읽기 전용 계획 확인이다. 실제 이관은 명시적으로 apply를 지정한다.
+tasks.register('catalogMigration', JavaExec) {
+    group = 'database'
+    dependsOn tasks.named('migrationClasses')
+    classpath = sourceSets.migration.runtimeClasspath
+    mainClass = 'com.louiekury.pet.migration.CatalogMigrationMain'
+    args providers.gradleProperty('catalogAction').getOrElse('plan')
 }

@@ -1,6 +1,10 @@
 package com.louiekury.pet.pet.adapter.out.persistence;
 
 import com.louiekury.pet.pet.application.port.out.UpdatePetPort;
+import com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort;
+import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.domain.PetSpecies;
+import com.louiekury.pet.pet.domain.PetBreed;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;
@@ -25,12 +29,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     private final MongoTemplate mongo;
+    private final GetPetSpeciesPort speciesPort;
+    private final GetPetBreedPort breedPort;
 
     @Override
     public Optional<Data> find(String id, Map<String, Object> changes, String caregiverId) {
         try {
             Document doc = mongo.findOne(Query.query(eligible(id, caregiverId)), Document.class, "pets");
-            if (doc == null) return Optional.empty();
+            if (doc == null) {
+                return Optional.empty();
+            }
             String species = doc.getString("speciesId");
             String breed = doc.getString("breedId");
             boolean resolveBreedName = Objects.equals(species, changes.getOrDefault("speciesId", species))
@@ -68,26 +76,25 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     }
 
     private Instant instant(Object value) {
-        if (value instanceof Date date) return date.toInstant();
-        if (value instanceof Instant instant) return instant;
+        if (value instanceof Date date) {
+            return date.toInstant();
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
         throw new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE);
     }
 
     private String breedName(Document pet, String species, String breed) {
-        if (breed == null) return null;
-        Document catalog = mongo.findById(species, Document.class, "pet_species");
-        String found = null;
-        if (catalog != null && catalog.get("breeds") instanceof Iterable<?> breeds) {
-            for (Object value : breeds) {
-                if (value instanceof Map<?, ?> entry && breed.equals(entry.get("breedId"))) {
-                    if (found != null || !(entry.get("name") instanceof String name) || name.isBlank()) {
-                        throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
-                    }
-                    found = name;
-                }
-            }
+        if (breed == null) {
+            return null;
         }
-        if (found != null) return found;
+        PetSpecies speciesData = speciesPort.getPetSpecies(species)
+            .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        String found = breedPort.getPetBreedBySpeciesAndId(speciesData, breed).map(PetBreed::getName).orElse(null);
+        if (found != null) {
+            return found;
+        }
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
                 && snapshot.get("species") instanceof Map<?, ?> savedSpecies

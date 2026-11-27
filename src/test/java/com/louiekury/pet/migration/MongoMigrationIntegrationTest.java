@@ -277,7 +277,7 @@ class MongoMigrationIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"absent-catalog", "inactive-species", "missing-species-index"})
-    @DisplayName("현재 앱은 종 enum을 사용하므로 과거 종 seed와 활성 상태에 의존하지 않고 읽기만 한다")
+    @DisplayName("현재 준비 검사는 과거 MongoDB 종 seed와 활성 상태에 의존하지 않고 읽기만 한다")
     void currentReadinessDoesNotRequireSpeciesCatalog(String oldState) throws Exception {
         MongoDatabase database = freshDatabase();
         assertSuccess(run("migrate", database));

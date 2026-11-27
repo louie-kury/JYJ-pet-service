@@ -134,7 +134,7 @@ class PetListWebTest {
     @DisplayName("선택 정보 null과 목록 요약 필드는 노출하고 내부 저장 필드는 노출하지 않는다")
     void returnsSummaryWithExplicitNulls() throws Exception {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(
-            PetListData.of("pet-1", "루이", PetSpecies.DOG, null, null, null, null, "MALE")), 1));
+            PetListData.of("pet-1", "루이", new PetSpecies("dog", "강아지"), null, null, null, null, "MALE")), 1));
         String body = mvc.perform(get("/api/pets").header("Authorization", "Bearer valid"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.content[0].petId").value("pet-1"))

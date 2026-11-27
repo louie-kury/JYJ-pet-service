@@ -3,6 +3,7 @@ package com.louiekury.pet.pet.application.createpet;
 import com.louiekury.pet.pet.application.port.in.CreatePetUseCase;
 import com.louiekury.pet.pet.application.port.out.CreatePetPort;
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort;
 import com.louiekury.pet.pet.domain.Pet;
 import com.louiekury.pet.pet.domain.PetBreed;
 import com.louiekury.pet.pet.domain.PetSpecies;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 public class CreatePetService implements CreatePetUseCase {
 
     private final GetPetBreedPort breedPort;
+    private final GetPetSpeciesPort speciesPort;
     private final CreatePetPort insertPort;
     private final Clock clock;
 
@@ -39,7 +41,7 @@ public class CreatePetService implements CreatePetUseCase {
         LocalDate today = now.atZone(ZoneId.of("Asia/Seoul")).toLocalDate();
         String name = command.getName() == null ? null : command.getName().strip();
         require(name != null && !name.isBlank() && name.codePointCount(0, name.length()) <= 50);
-        PetSpecies species = PetSpecies.fromId(command.getSpeciesId())
+        PetSpecies species = speciesPort.getPetSpecies(command.getSpeciesId())
             .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
         require(command.getBreedId() == null || !command.getBreedId().isBlank());
         require(command.getProfileMediaId() == null || !command.getProfileMediaId().isBlank());
@@ -57,7 +59,7 @@ public class CreatePetService implements CreatePetUseCase {
         PetBreed breed = null;
         if (pet.getBreedId() != null) {
             breed = breedPort.getPetBreedBySpeciesAndId(pet.getSpecies(), pet.getBreedId())
-                .filter(found -> found.getSpecies() == pet.getSpecies()
+                .filter(found -> found.getSpecies().equals(pet.getSpecies())
                     && found.getBreedId().equals(pet.getBreedId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
         }

@@ -4,13 +4,15 @@ import com.louiekury.pet.pet.application.getpets.GetPetsQuery;
 import com.louiekury.pet.pet.application.getpets.PetListData;
 import com.louiekury.pet.pet.application.getpets.PetListPage;
 import com.louiekury.pet.pet.application.port.out.GetPetsPort;
+import com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort;
+import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.domain.PetBreed;
 import com.louiekury.pet.pet.domain.PetSpecies;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +31,8 @@ import org.springframework.stereotype.Component;
 public class PetListPersistenceAdapter implements GetPetsPort {
 
     private final MongoTemplate mongoTemplate;
+    private final GetPetSpeciesPort speciesPort;
+    private final GetPetBreedPort breedPort;
 
     @Override
     public PetListPage getPets(GetPetsQuery query) {
@@ -40,33 +44,40 @@ public class PetListPersistenceAdapter implements GetPetsPort {
             page.fields().include("_id", "name", "speciesId", "breedId", "profileMediaId", "birth", "sex",
                 "registration.responseSnapshot.breed", "registration.responseSnapshot.species.speciesId");
             List<Document> pets = mongoTemplate.find(page, Document.class, "pets");
-            Map<String, Document> catalogs = getBreedCatalogs(pets);
+            CatalogCache catalogs = getCatalogs(pets);
             return PetListPage.of(pets.stream().map(pet -> getPetData(pet, catalogs)).toList(), total);
         } catch (DataAccessException | MongoException exception) {
             throw new BusinessException(ErrorCode.PET_QUERY_UNAVAILABLE, exception);
         }
     }
 
-    Map<String, Document> getBreedCatalogs(List<Document> pets) {
-        Set<String> speciesIds = pets.stream().filter(pet -> pet.get("breedId") != null)
-            .map(pet -> getString(pet, "speciesId", false)).collect(Collectors.toSet());
-        Map<String, Document> catalogs = new HashMap<>();
-        if (!speciesIds.isEmpty()) {
-            Query query = Query.query(Criteria.where("_id").in(speciesIds));
-            query.fields().include("_id", "breeds");
-            for (Document catalog : mongoTemplate.find(query, Document.class, "pet_species")) {
-                catalogs.put(getString(catalog, "_id", false), catalog);
-            }
+    static class CatalogCache {
+        final Map<String, PetSpecies> species;
+        final Map<String, PetBreed> breeds;
+
+        CatalogCache(Map<String, PetSpecies> species, Map<String, PetBreed> breeds) {
+            this.species = species;
+            this.breeds = breeds;
         }
-        return catalogs;
     }
 
-    PetListData getPetData(Document pet, Map<String, Document> catalogs) {
+    CatalogCache getCatalogs(List<Document> pets) {
+        Set<String> speciesIds = pets.stream().map(pet -> getString(pet, "speciesId", false))
+            .collect(Collectors.toSet());
+        Set<String> breedIds = pets.stream().map(pet -> getString(pet, "breedId", true))
+            .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Map<String, PetSpecies> species = speciesPort.getPetSpeciesByIds(speciesIds);
+        return new CatalogCache(species, breedPort.getPetBreedsByIds(species, breedIds));
+    }
+
+    PetListData getPetData(Document pet, CatalogCache catalogs) {
         String speciesId = getString(pet, "speciesId", false);
-        PetSpecies species = PetSpecies.fromId(speciesId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        PetSpecies species = catalogs.species.get(speciesId);
+        if (species == null) {
+            throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
+        }
         String breedId = getString(pet, "breedId", true);
-        String breedName = breedId == null ? null : getBreedName(pet, breedId, catalogs.get(speciesId));
+        String breedName = breedId == null ? null : getBreedName(pet, species, breedId, catalogs);
         String birth = getString(pet, "birth", true);
         LocalDate birthday;
         try {
@@ -82,26 +93,15 @@ public class PetListPersistenceAdapter implements GetPetsPort {
             breedId, breedName, getString(pet, "profileMediaId", true), birthday, sex);
     }
 
-    private String getBreedName(Document pet, String breedId, Document catalog) {
-        String found = null;
-        if (catalog != null && catalog.get("breeds") instanceof List<?> breeds) {
-            for (Object value : breeds) {
-                if (value instanceof Map<?, ?> breed && breedId.equals(breed.get("breedId"))) {
-                    if (found != null || !(breed.get("name") instanceof String name) || name.isBlank()) {
-                        throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
-                    }
-                    // 비활성 품종도 이미 등록된 동물의 표시에는 사용할 수 있다.
-                    found = name;
-                }
-            }
-        }
-        if (found != null) {
-            return found;
+    private String getBreedName(Document pet, PetSpecies species, String breedId, CatalogCache catalogs) {
+        PetBreed found = catalogs.breeds.get(breedId);
+        if (found != null && species.getSpeciesId().equals(found.getSpecies().getSpeciesId())) {
+            return found.getName();
         }
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot
                 && snapshot.get("species") instanceof Map<?, ?> savedSpecies
-                && getString(pet, "speciesId", false).equals(savedSpecies.get("speciesId"))
+                && species.getSpeciesId().equals(savedSpecies.get("speciesId"))
                 && snapshot.get("breed") instanceof Map<?, ?> breed
                 && breedId.equals(breed.get("breedId"))
                 && breed.get("name") instanceof String name && !name.isBlank()) {

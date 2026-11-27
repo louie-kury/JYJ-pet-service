@@ -3,6 +3,7 @@ package com.louiekury.pet.pet.application.updatepet;
 import com.louiekury.pet.pet.application.createpet.PetResult;
 import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort;
 import com.louiekury.pet.pet.application.port.out.UpdatePetPort;
 import com.louiekury.pet.pet.domain.PetBreed;
 import com.louiekury.pet.pet.domain.PetSpecies;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 public class UpdatePetService implements UpdatePetUseCase {
     private final UpdatePetPort port;
     private final GetPetBreedPort breedPort;
+    private final GetPetSpeciesPort speciesPort;
     private final Clock clock;
 
     @Override
@@ -50,7 +52,7 @@ public class UpdatePetService implements UpdatePetUseCase {
             require(name != null && !name.isBlank() && name.codePointCount(0, name.length()) <= 50);
 
             String speciesId = (String) changes.getOrDefault("speciesId", old.getSpeciesId());
-            PetSpecies species = PetSpecies.fromId(speciesId)
+            PetSpecies species = speciesPort.getPetSpecies(speciesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
             String breedId = (String) changes.getOrDefault("breedId", old.getBreedId());
             require(breedId == null || !breedId.isBlank());
@@ -74,7 +76,7 @@ public class UpdatePetService implements UpdatePetUseCase {
                 breedName = null;
             } else if (!Objects.equals(speciesId, old.getSpeciesId()) || !Objects.equals(breedId, old.getBreedId())) {
                 PetBreed breed = breedPort.getPetBreedBySpeciesAndId(species, breedId)
-                    .filter(found -> found.getSpecies() == species && found.getBreedId().equals(breedId))
+                    .filter(found -> found.getSpecies().equals(species) && found.getBreedId().equals(breedId))
                     .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
                 breedName = breed.getName();
             } else if (breedName == null) {

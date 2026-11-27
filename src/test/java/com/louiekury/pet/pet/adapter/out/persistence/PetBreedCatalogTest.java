@@ -22,7 +22,7 @@ class PetBreedCatalogTest {
         ReflectionTestUtils.setField(catalog, "id", "dog");
         ReflectionTestUtils.setField(catalog, "breeds", List.of(breed));
 
-        assertThatThrownBy(() -> catalog.getPetBreed(PetSpecies.DOG, "poodle"))
+        assertThatThrownBy(() -> catalog.getPetBreed(new PetSpecies("dog", "강아지"), "poodle"))
             .isInstanceOfSatisfying(BusinessException.class,
                 exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
     }
@@ -32,7 +32,7 @@ class PetBreedCatalogTest {
         PetBreedCatalogMongoDocument catalog = new PetBreedCatalogMongoDocument();
         ReflectionTestUtils.setField(catalog, "id", "cat");
 
-        assertThatThrownBy(() -> catalog.getPetBreed(PetSpecies.DOG, "poodle"))
+        assertThatThrownBy(() -> catalog.getPetBreed(new PetSpecies("dog", "강아지"), "poodle"))
             .isInstanceOfSatisfying(BusinessException.class,
                 exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
     }

@@ -22,7 +22,7 @@ class PetDetailMongoIntegrationTest {
     @BeforeAll void setup() {
         client = MongoClients.create(System.getenv("PET_TEST_MONGODB_URI"));
         mongo = new MongoTemplate(client, "pet_detail_test_" + UUID.randomUUID().toString().replace("-", ""));
-        adapter = new PetDetailPersistenceAdapter(mongo, new PetListPersistenceAdapter(mongo));
+        adapter = new PetDetailPersistenceAdapter(mongo, new PetListPersistenceAdapter(mongo, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds()));
         Date timestamp = new Date();
         mongo.getCollection("pets").insertOne(new Document("_id", "pet-1").append("caregiverId", "owner-1")
             .append("name", "루이").append("speciesId", "dog").append("sex", "MALE")
@@ -39,7 +39,7 @@ class PetDetailMongoIntegrationTest {
         assertThat(adapter.getPet("missing", "owner-1")).isEmpty();
     }
     @Test void authenticatedRegistrationStoresOwner() {
-        var species = com.louiekury.pet.pet.domain.PetSpecies.DOG;
+        var species = new com.louiekury.pet.pet.domain.PetSpecies("dog", "강아지");
         var pet = com.louiekury.pet.pet.domain.Pet.create("보리", species, null, null, null, "FEMALE", null, null, null);
         var result = com.louiekury.pet.pet.application.createpet.PetResult.of(pet, null, java.time.Instant.now(), null);
         new PetPersistenceAdapter(mongo).createPet(result, null, "owner-1");
