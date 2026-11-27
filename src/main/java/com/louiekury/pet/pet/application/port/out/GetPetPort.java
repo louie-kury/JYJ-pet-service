@@ -4,10 +4,20 @@ import com.louiekury.pet.pet.application.getpets.PetListData;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 public interface GetPetPort {
-    record Data(PetListData summary, Boolean neutered, BigDecimal weight, Boolean vaccination,
-                Instant createdAt, Instant updatedAt) { }
+    @Getter
+    @RequiredArgsConstructor
+    class Data {
+        private final PetListData summary;
+        private final Boolean neutered;
+        private final BigDecimal weight;
+        private final Boolean vaccination;
+        private final Instant createdAt;
+        private final Instant updatedAt;
+    }
 
     Optional<Data> getPet(String id, String caregiverId);
 }
