@@ -1,7 +1,7 @@
-package com.louiekury.pet.pet.application.createpet;
+package com.louiekury.pet.pet.application.port.in;
 
-import com.louiekury.pet.pet.application.createpet.PetResult;
 import com.louiekury.pet.pet.application.createpet.CreatePetCommand;
+import com.louiekury.pet.pet.application.createpet.PetResult;
 
 public interface CreatePetUseCase {
 

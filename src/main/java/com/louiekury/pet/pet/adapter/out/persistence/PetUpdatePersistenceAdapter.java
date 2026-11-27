@@ -1,6 +1,6 @@
 package com.louiekury.pet.pet.adapter.out.persistence;
 
-import com.louiekury.pet.pet.application.updatepet.UpdatePetPort;
+import com.louiekury.pet.pet.application.port.out.UpdatePetPort;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;
@@ -52,7 +52,7 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     @Override
     public boolean update(Data previous, Map<String, Object> changes, Instant now, String caregiverId) {
         try {
-            Criteria criteria = eligible(previous.id(), caregiverId).and("updatedAt").is(Date.from(previous.updatedAt()));
+            Criteria criteria = eligible(previous.getId(), caregiverId).and("updatedAt").is(Date.from(previous.getUpdatedAt()));
             Update update = new Update();
             changes.forEach((key, value) -> update.set(key, value instanceof LocalDate date ? date.toString()
                 : value instanceof BigDecimal decimal ? new Decimal128(decimal) : value));

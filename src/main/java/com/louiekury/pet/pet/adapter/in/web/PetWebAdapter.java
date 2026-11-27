@@ -1,19 +1,19 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.web.response.ApiResponse;
-import com.louiekury.pet.pet.application.getpet.GetPetService;
 import com.louiekury.pet.pet.adapter.in.web.dto.request.CreatePetRequestDto;
+import com.louiekury.pet.pet.adapter.in.web.dto.request.UpdatePetRequest;
 import com.louiekury.pet.pet.adapter.in.web.dto.response.PetDetailResponseDto;
 import com.louiekury.pet.pet.adapter.in.web.dto.response.PetListResponseDto;
 import com.louiekury.pet.pet.application.createpet.CreatePetCommand;
-import com.louiekury.pet.pet.application.createpet.CreatePetUseCase;
 import com.louiekury.pet.pet.application.createpet.PetResult;
 import com.louiekury.pet.pet.application.getpets.GetPetsQuery;
 import com.louiekury.pet.pet.application.getpets.GetPetsResult;
-import com.louiekury.pet.pet.application.getpets.GetPetsUseCase;
+import com.louiekury.pet.pet.application.port.in.CreatePetUseCase;
+import com.louiekury.pet.pet.application.port.in.GetPetUseCase;
+import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
+import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import java.net.URI;
-import com.louiekury.pet.pet.adapter.in.web.dto.request.UpdatePetRequest;
-import com.louiekury.pet.pet.application.updatepet.UpdatePetUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ public class PetWebAdapter {
     private final CreatePetUseCase createPetUseCase;
     private final GetPetsUseCase getPetsUseCase;
     private final UpdatePetUseCase updatePetUseCase;
-    private final GetPetService getPetService;
+    private final GetPetUseCase getPetService;
 
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> getPet(String id, String caregiverId) {
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(getPetService.getPet(id, caregiverId))));

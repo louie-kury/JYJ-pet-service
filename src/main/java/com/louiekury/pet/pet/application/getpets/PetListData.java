@@ -23,7 +23,15 @@ public class PetListData {
 
     public static PetListData of(String petId, String name, PetSpecies species, String breedId,
             String breedName, String profileMediaId, LocalDate birth, String sex) {
-        return PetListData.builder().petId(petId).name(name).species(species).breedId(breedId)
-            .breedName(breedName).profileMediaId(profileMediaId).birth(birth).sex(sex).build();
+        return PetListData.builder()
+            .petId(petId)
+            .name(name)
+            .species(species)
+            .breedId(breedId)
+            .breedName(breedName)
+            .profileMediaId(profileMediaId)
+            .birth(birth)
+            .sex(sex)
+            .build();
     }
 }

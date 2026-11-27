@@ -19,8 +19,8 @@ public class VaccineController {
     private final VaccineWebAdapter adapter;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<VaccineResult>>> listVaccines() {
-        return adapter.listVaccines();
+    public ResponseEntity<ApiResponse<List<VaccineResult>>> getVaccines() {
+        return adapter.getVaccines();
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

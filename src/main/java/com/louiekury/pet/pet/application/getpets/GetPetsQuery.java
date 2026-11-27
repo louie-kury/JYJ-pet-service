@@ -15,7 +15,11 @@ public class GetPetsQuery {
     private final String caregiverId;
 
     public static GetPetsQuery of(int page, int size, String caregiverId) {
-        return GetPetsQuery.builder().page(page).size(size).caregiverId(caregiverId).build();
+        return GetPetsQuery.builder()
+            .page(page)
+            .size(size)
+            .caregiverId(caregiverId)
+            .build();
     }
 
     public long getOffset() {

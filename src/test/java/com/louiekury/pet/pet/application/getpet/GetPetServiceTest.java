@@ -1,6 +1,7 @@
 package com.louiekury.pet.pet.application.getpet;
 
 import com.louiekury.pet.pet.application.getpets.PetListData;
+import com.louiekury.pet.pet.application.port.out.GetPetPort;
 import com.louiekury.pet.pet.domain.PetSpecies;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;

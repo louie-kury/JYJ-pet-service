@@ -1,13 +1,12 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
-import com.louiekury.pet.pet.application.updatepet.UpdatePetUseCase;
-
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
-import com.louiekury.pet.pet.application.createpet.CreatePetUseCase;
 import com.louiekury.pet.pet.application.getpets.GetPetsQuery;
 import com.louiekury.pet.pet.application.getpets.GetPetsService;
 import com.louiekury.pet.pet.application.getpets.PetListData;
 import com.louiekury.pet.pet.application.getpets.PetListPage;
+import com.louiekury.pet.pet.application.port.in.CreatePetUseCase;
+import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import com.louiekury.pet.pet.application.port.out.GetPetsPort;
 import com.louiekury.pet.pet.domain.PetSpecies;
 import com.louiekury.pet.shared.exception.BusinessException;
@@ -53,7 +52,7 @@ class PetListWebTest {
         GetPetsService service = new GetPetsService(pets,
             Clock.fixed(Instant.parse("2026-11-22T15:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(
-                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
+                new PetController(new PetWebAdapter(mock(CreatePetUseCase.class), service, mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.port.in.GetPetUseCase.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
