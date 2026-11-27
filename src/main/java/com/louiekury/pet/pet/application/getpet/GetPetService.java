@@ -20,11 +20,15 @@ public class GetPetService implements GetPetUseCase {
     private final Clock clock;
 
     public PetResult getPet(String id, String caregiverId) {
-        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        if (caregiverId == null || caregiverId.isBlank()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
         GetPetPort.Data data = port.getPet(id, caregiverId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
         PetListData pet = data.summary();
-        if (pet.getProfileMediaId() != null) throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
+        if (pet.getProfileMediaId() != null) {
+            throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
+        }
         LocalDate today = clock.instant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate();
         LocalDate birth = pet.getBirth();
         if (birth != null && (birth.getYear() < 1 || birth.getYear() > 9999 || birth.isAfter(today))) {

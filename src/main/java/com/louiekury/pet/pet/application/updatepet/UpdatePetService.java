@@ -29,25 +29,38 @@ public class UpdatePetService implements UpdatePetUseCase {
 
     @Override
     public PetResult updatePet(String id, Map<String, Object> changes, String caregiverId) {
-        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        if (changes.isEmpty()) throw new BusinessException(ErrorCode.EMPTY_UPDATE);
+        if (caregiverId == null || caregiverId.isBlank()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        if (changes.isEmpty()) {
+            throw new BusinessException(ErrorCode.EMPTY_UPDATE);
+        }
+
         for (int attempt = 0; attempt < 3; attempt++) {
             UpdatePetPort.Data old = port.find(id, changes, caregiverId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
             Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
-            if (!now.isAfter(old.updatedAt())) now = old.updatedAt().plusMillis(1);
+            if (!now.isAfter(old.updatedAt())) {
+                now = old.updatedAt().plusMillis(1);
+            }
+
             LocalDate today = now.atZone(ZoneId.of("Asia/Seoul")).toLocalDate();
             String name = (String) changes.getOrDefault("name", old.name());
             name = name == null ? null : name.strip();
             require(name != null && !name.isBlank() && name.codePointCount(0, name.length()) <= 50);
+
             String speciesId = (String) changes.getOrDefault("speciesId", old.speciesId());
             PetSpecies species = PetSpecies.fromId(speciesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
             String breedId = (String) changes.getOrDefault("breedId", old.breedId());
             require(breedId == null || !breedId.isBlank());
+
             String media = (String) changes.getOrDefault("profileMediaId", old.profileMediaId());
             require(media == null || !media.isBlank());
-            if (media != null) throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
+            if (media != null) {
+                throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
+            }
+
             String sex = (String) changes.getOrDefault("sex", old.sex());
             require("MALE".equals(sex) || "FEMALE".equals(sex));
             LocalDate birth = (LocalDate) changes.getOrDefault("birth", old.birth());
@@ -55,6 +68,7 @@ public class UpdatePetService implements UpdatePetUseCase {
             BigDecimal weight = (BigDecimal) changes.getOrDefault("weight", old.weight());
             require(weight == null || (weight.signum() > 0 && weight.compareTo(new BigDecimal("200")) <= 0
                 && weight.stripTrailingZeros().scale() <= 3));
+
             String breedName = old.breedName();
             if (breedId == null) {
                 breedName = null;
@@ -66,7 +80,10 @@ public class UpdatePetService implements UpdatePetUseCase {
             } else if (breedName == null) {
                 throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
             }
-            if (changes.containsKey("name")) changes.put("name", name);
+
+            if (changes.containsKey("name")) {
+                changes.put("name", name);
+            }
             if (port.update(old, changes, now, caregiverId)) {
                 Boolean neutered = (Boolean) changes.getOrDefault("isNeutered", old.neutered());
                 Boolean vaccination = (Boolean) changes.getOrDefault("basicVaccinationCompleted", old.vaccination());
@@ -75,10 +92,15 @@ public class UpdatePetService implements UpdatePetUseCase {
                     vaccination, old.createdAt(), now);
             }
         }
-        if (port.find(id, changes, caregiverId).isEmpty()) throw new BusinessException(ErrorCode.NOT_FOUND);
+        if (port.find(id, changes, caregiverId).isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
         throw new BusinessException(ErrorCode.PERSISTENCE_UNAVAILABLE);
     }
+
     private static void require(boolean condition) {
-        if (!condition) throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        if (!condition) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
     }
 }

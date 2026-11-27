@@ -31,7 +31,8 @@ public class PetWebAdapter {
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(getPetService.getPet(id, caregiverId))));
     }
 
-    public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(String id, UpdatePetRequest request, String caregiverId) {
+    public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(
+            String id, UpdatePetRequest request, String caregiverId) {
         PetResult result = updatePetUseCase.updatePet(id, request.toChanges(), caregiverId);
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(result)));
     }
