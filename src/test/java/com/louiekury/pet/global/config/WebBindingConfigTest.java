@@ -1,6 +1,6 @@
 package com.louiekury.pet.global.config;
 
-import com.louiekury.pet.vaccine.adapter.in.web.CreateVaccineRequestDto;
+import com.louiekury.pet.vaccine.adapter.in.web.dto.request.CreateVaccineRequestDto;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;

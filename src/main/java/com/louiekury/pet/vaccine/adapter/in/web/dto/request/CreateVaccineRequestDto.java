@@ -1,4 +1,4 @@
-package com.louiekury.pet.vaccine.adapter.in.web;
+package com.louiekury.pet.vaccine.adapter.in.web.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 public class CreateVaccineRequestDto {
     private String name;
 
-    public void setName(Object name) {
-        this.name = name instanceof String ? (String) name : null;
+    public void setName(String name) {
+        this.name = name;
     }
 }

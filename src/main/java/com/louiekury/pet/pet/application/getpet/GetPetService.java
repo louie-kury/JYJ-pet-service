@@ -25,7 +25,7 @@ public class GetPetService implements GetPetUseCase {
         }
         GetPetPort.Data data = port.getPet(id, caregiverId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        PetListData pet = data.summary();
+        PetListData pet = data.getSummary();
         if (pet.getProfileMediaId() != null) {
             throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
         }
@@ -36,6 +36,6 @@ public class GetPetService implements GetPetUseCase {
         }
         return PetResult.updated(pet.getPetId(), pet.getName(), pet.getSpecies(), pet.getBreedId(),
             pet.getBreedName(), birth, birth == null ? null : Period.between(birth, today), pet.getSex(),
-            data.neutered(), data.weight(), data.vaccination(), data.createdAt(), data.updatedAt());
+            data.getNeutered(), data.getWeight(), data.getVaccination(), data.getCreatedAt(), data.getUpdatedAt());
     }
 }

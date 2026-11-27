@@ -9,52 +9,52 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class CreatePetRequestDto {
-    @NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "반려동물 이름은 필수입니다.")
     private String name;
-    @NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "반려동물 종은 필수입니다.")
     private String speciesId;
     private String breedId;
     private String profileMediaId;
     private LocalDate birth;
-    @NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "반려동물 성별은 필수입니다.")
     private String sex;
     private Boolean isNeutered;
     private BigDecimal weight;
     private Boolean basicVaccinationCompleted;
 
-    public void setName(Object value) {
-        this.name = RequestValue.text(value);
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setSpeciesId(Object value) {
-        this.speciesId = RequestValue.text(value);
+    public void setSpeciesId(String speciesId) {
+        this.speciesId = speciesId;
     }
 
-    public void setBreedId(Object value) {
-        this.breedId = RequestValue.text(value);
+    public void setBreedId(String breedId) {
+        this.breedId = breedId;
     }
 
-    public void setProfileMediaId(Object value) {
-        this.profileMediaId = RequestValue.text(value);
+    public void setProfileMediaId(String profileMediaId) {
+        this.profileMediaId = profileMediaId;
     }
 
-    public void setBirth(Object value) {
-        this.birth = RequestValue.date(value);
+    public void setBirth(LocalDate birth) {
+        this.birth = birth;
     }
 
-    public void setSex(Object value) {
-        this.sex = RequestValue.text(value);
+    public void setSex(String sex) {
+        this.sex = sex;
     }
 
-    public void setIsNeutered(Object value) {
-        this.isNeutered = RequestValue.bool(value);
+    public void setIsNeutered(Boolean isNeutered) {
+        this.isNeutered = isNeutered;
     }
 
-    public void setWeight(Object value) {
-        this.weight = RequestValue.decimal(value);
+    public void setWeight(BigDecimal weight) {
+        this.weight = weight;
     }
 
-    public void setBasicVaccinationCompleted(Object value) {
-        this.basicVaccinationCompleted = RequestValue.bool(value);
+    public void setBasicVaccinationCompleted(Boolean basicVaccinationCompleted) {
+        this.basicVaccinationCompleted = basicVaccinationCompleted;
     }
 }

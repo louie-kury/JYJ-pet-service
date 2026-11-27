@@ -14,6 +14,8 @@ import com.louiekury.pet.pet.application.port.in.GetPetUseCase;
 import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
 import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -33,8 +35,40 @@ public class PetWebAdapter {
 
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(
             String id, UpdatePetRequest request, String caregiverId) {
-        PetResult result = updatePetUseCase.updatePet(id, request.toChanges(), caregiverId);
+        PetResult result = updatePetUseCase.updatePet(id, toChanges(request), caregiverId);
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(result)));
+    }
+
+    private Map<String, Object> toChanges(UpdatePetRequest request) {
+        Map<String, Object> changes = new LinkedHashMap<>();
+        if (request.hasName()) {
+            changes.put("name", request.getName());
+        }
+        if (request.hasSpeciesId()) {
+            changes.put("speciesId", request.getSpeciesId());
+        }
+        if (request.hasBreedId()) {
+            changes.put("breedId", request.getBreedId());
+        }
+        if (request.hasProfileMediaId()) {
+            changes.put("profileMediaId", request.getProfileMediaId());
+        }
+        if (request.hasBirth()) {
+            changes.put("birth", request.getBirth());
+        }
+        if (request.hasSex()) {
+            changes.put("sex", request.getSex());
+        }
+        if (request.hasIsNeutered()) {
+            changes.put("isNeutered", request.getIsNeutered());
+        }
+        if (request.hasWeight()) {
+            changes.put("weight", request.getWeight());
+        }
+        if (request.hasBasicVaccinationCompleted()) {
+            changes.put("basicVaccinationCompleted", request.getBasicVaccinationCompleted());
+        }
+        return changes;
     }
 
     public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(int page, int size, String caregiverId) {

@@ -40,39 +40,39 @@ public class UpdatePetService implements UpdatePetUseCase {
             UpdatePetPort.Data old = port.find(id, changes, caregiverId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
             Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
-            if (!now.isAfter(old.updatedAt())) {
-                now = old.updatedAt().plusMillis(1);
+            if (!now.isAfter(old.getUpdatedAt())) {
+                now = old.getUpdatedAt().plusMillis(1);
             }
 
             LocalDate today = now.atZone(ZoneId.of("Asia/Seoul")).toLocalDate();
-            String name = (String) changes.getOrDefault("name", old.name());
+            String name = (String) changes.getOrDefault("name", old.getName());
             name = name == null ? null : name.strip();
             require(name != null && !name.isBlank() && name.codePointCount(0, name.length()) <= 50);
 
-            String speciesId = (String) changes.getOrDefault("speciesId", old.speciesId());
+            String speciesId = (String) changes.getOrDefault("speciesId", old.getSpeciesId());
             PetSpecies species = PetSpecies.fromId(speciesId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
-            String breedId = (String) changes.getOrDefault("breedId", old.breedId());
+            String breedId = (String) changes.getOrDefault("breedId", old.getBreedId());
             require(breedId == null || !breedId.isBlank());
 
-            String media = (String) changes.getOrDefault("profileMediaId", old.profileMediaId());
+            String media = (String) changes.getOrDefault("profileMediaId", old.getProfileMediaId());
             require(media == null || !media.isBlank());
             if (media != null) {
                 throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
             }
 
-            String sex = (String) changes.getOrDefault("sex", old.sex());
+            String sex = (String) changes.getOrDefault("sex", old.getSex());
             require("MALE".equals(sex) || "FEMALE".equals(sex));
-            LocalDate birth = (LocalDate) changes.getOrDefault("birth", old.birth());
+            LocalDate birth = (LocalDate) changes.getOrDefault("birth", old.getBirth());
             require(birth == null || (birth.getYear() >= 1 && birth.getYear() <= 9999 && !birth.isAfter(today)));
-            BigDecimal weight = (BigDecimal) changes.getOrDefault("weight", old.weight());
+            BigDecimal weight = (BigDecimal) changes.getOrDefault("weight", old.getWeight());
             require(weight == null || (weight.signum() > 0 && weight.compareTo(new BigDecimal("200")) <= 0
                 && weight.stripTrailingZeros().scale() <= 3));
 
-            String breedName = old.breedName();
+            String breedName = old.getBreedName();
             if (breedId == null) {
                 breedName = null;
-            } else if (!Objects.equals(speciesId, old.speciesId()) || !Objects.equals(breedId, old.breedId())) {
+            } else if (!Objects.equals(speciesId, old.getSpeciesId()) || !Objects.equals(breedId, old.getBreedId())) {
                 PetBreed breed = breedPort.getPetBreedBySpeciesAndId(species, breedId)
                     .filter(found -> found.getSpecies() == species && found.getBreedId().equals(breedId))
                     .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_ERROR));
@@ -85,11 +85,11 @@ public class UpdatePetService implements UpdatePetUseCase {
                 changes.put("name", name);
             }
             if (port.update(old, changes, now, caregiverId)) {
-                Boolean neutered = (Boolean) changes.getOrDefault("isNeutered", old.neutered());
-                Boolean vaccination = (Boolean) changes.getOrDefault("basicVaccinationCompleted", old.vaccination());
+                Boolean neutered = (Boolean) changes.getOrDefault("isNeutered", old.getNeutered());
+                Boolean vaccination = (Boolean) changes.getOrDefault("basicVaccinationCompleted", old.getVaccination());
                 return PetResult.updated(id, name, species, breedId, breedName, birth,
                     birth == null ? null : Period.between(birth, today), sex, neutered, weight,
-                    vaccination, old.createdAt(), now);
+                    vaccination, old.getCreatedAt(), now);
             }
         }
         if (port.find(id, changes, caregiverId).isEmpty()) {
