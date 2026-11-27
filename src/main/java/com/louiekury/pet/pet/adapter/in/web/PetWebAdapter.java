@@ -14,6 +14,8 @@ import com.louiekury.pet.pet.application.port.in.GetPetUseCase;
 import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
 import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -31,9 +33,42 @@ public class PetWebAdapter {
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(getPetService.getPet(id, caregiverId))));
     }
 
-    public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(String id, UpdatePetRequest request, String caregiverId) {
-        PetResult result = updatePetUseCase.updatePet(id, request.getChanges(), caregiverId);
+    public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(
+            String id, UpdatePetRequest request, String caregiverId) {
+        PetResult result = updatePetUseCase.updatePet(id, toChanges(request), caregiverId);
         return ResponseEntity.ok(ApiResponse.success(PetDetailResponseDto.from(result)));
+    }
+
+    private Map<String, Object> toChanges(UpdatePetRequest request) {
+        Map<String, Object> changes = new LinkedHashMap<>();
+        if (request.getName().isPresent()) {
+            changes.put("name", request.getName().getValue());
+        }
+        if (request.getSpeciesId().isPresent()) {
+            changes.put("speciesId", request.getSpeciesId().getValue());
+        }
+        if (request.getBreedId().isPresent()) {
+            changes.put("breedId", request.getBreedId().getValue());
+        }
+        if (request.getProfileMediaId().isPresent()) {
+            changes.put("profileMediaId", request.getProfileMediaId().getValue());
+        }
+        if (request.getBirth().isPresent()) {
+            changes.put("birth", request.getBirth().getValue());
+        }
+        if (request.getSex().isPresent()) {
+            changes.put("sex", request.getSex().getValue());
+        }
+        if (request.getIsNeutered().isPresent()) {
+            changes.put("isNeutered", request.getIsNeutered().getValue());
+        }
+        if (request.getWeight().isPresent()) {
+            changes.put("weight", request.getWeight().getValue());
+        }
+        if (request.getBasicVaccinationCompleted().isPresent()) {
+            changes.put("basicVaccinationCompleted", request.getBasicVaccinationCompleted().getValue());
+        }
+        return changes;
     }
 
     public ResponseEntity<ApiResponse<PetListResponseDto>> getPets(int page, int size, String caregiverId) {

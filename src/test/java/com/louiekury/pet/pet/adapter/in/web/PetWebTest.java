@@ -47,6 +47,7 @@ class PetWebTest {
         when(auth.require("Bearer unavailable")).thenThrow(new BusinessException(ErrorCode.AUTH_SERVICE_UNAVAILABLE));
         mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.port.in.GetPetUseCase.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
+            .setMessageConverters(RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 

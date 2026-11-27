@@ -21,8 +21,13 @@ public class GetPetsResult {
     public static GetPetsResult of(List<PetListItemResult> content, GetPetsQuery query, long totalElements) {
         long totalPages = totalElements / query.getSize()
             + (totalElements % query.getSize() == 0 ? 0 : 1);
-        return GetPetsResult.builder().content(List.copyOf(content)).page(query.getPage())
-            .size(query.getSize()).totalElements(totalElements).totalPages(totalPages)
-            .hasNext((long) query.getPage() + 1 < totalPages).build();
+        return GetPetsResult.builder()
+            .content(List.copyOf(content))
+            .page(query.getPage())
+            .size(query.getSize())
+            .totalElements(totalElements)
+            .totalPages(totalPages)
+            .hasNext((long) query.getPage() + 1 < totalPages)
+            .build();
     }
 }

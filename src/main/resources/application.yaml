@@ -24,6 +24,11 @@ spring:
       auto-index-creation: false
   jackson:
     time-zone: Asia/Seoul
+    mapper:
+      allow-coercion-of-scalars: false
+    deserialization:
+      use-big-decimal-for-floats: true
+      fail-on-unknown-properties: true
 
 logging:
   pattern:

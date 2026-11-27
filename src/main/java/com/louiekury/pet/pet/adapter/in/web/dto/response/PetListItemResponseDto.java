@@ -20,8 +20,14 @@ public class PetListItemResponseDto {
     private final String sex;
 
     public static PetListItemResponseDto from(PetListItemResult result) {
-        return PetListItemResponseDto.builder().petId(result.getPetId()).name(result.getName())
-            .species(result.getSpecies()).breed(result.getBreed()).profileMedia(null)
-            .age(result.getAge()).sex(result.getSex()).build();
+        return PetListItemResponseDto.builder()
+            .petId(result.getPetId())
+            .name(result.getName())
+            .species(result.getSpecies())
+            .breed(result.getBreed())
+            .profileMedia(null)
+            .age(result.getAge())
+            .sex(result.getSex())
+            .build();
     }
 }

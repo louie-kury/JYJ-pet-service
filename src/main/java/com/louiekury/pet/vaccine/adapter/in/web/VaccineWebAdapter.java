@@ -1,9 +1,10 @@
 package com.louiekury.pet.vaccine.adapter.in.web;
 
 import com.louiekury.pet.global.web.response.ApiResponse;
-import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
+import com.louiekury.pet.vaccine.adapter.in.web.dto.request.CreateVaccineRequestDto;
+import com.louiekury.pet.vaccine.adapter.in.web.dto.response.VaccineResponseDto;
 import com.louiekury.pet.vaccine.application.port.in.CreateVaccineUseCase;
-import com.louiekury.pet.vaccine.application.port.in.ListVaccinesUseCase;
+import com.louiekury.pet.vaccine.application.port.in.GetVaccinesUseCase;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,14 +15,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class VaccineWebAdapter {
     private final CreateVaccineUseCase useCase;
-    private final ListVaccinesUseCase listVaccinesUseCase;
+    private final GetVaccinesUseCase getVaccinesUseCase;
 
-    public ResponseEntity<ApiResponse<List<VaccineResult>>> listVaccines() {
-        return ResponseEntity.ok(ApiResponse.success(listVaccinesUseCase.listVaccines()));
+    public ResponseEntity<ApiResponse<List<VaccineResponseDto>>> getVaccines() {
+        return ResponseEntity.ok(ApiResponse.success(getVaccinesUseCase.getVaccines().stream()
+            .map(VaccineResponseDto::from)
+            .toList()));
     }
 
-    public ResponseEntity<ApiResponse<VaccineResult>> createVaccine(CreateVaccineRequestDto request) {
+    public ResponseEntity<ApiResponse<VaccineResponseDto>> createVaccine(CreateVaccineRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success(useCase.createVaccine(request.getName())));
+            .body(ApiResponse.success(VaccineResponseDto.from(useCase.createVaccine(request.getName()))));
     }
 }

@@ -30,12 +30,20 @@ public class PetDetailResponseDto {
     private final OffsetDateTime updatedAt;
 
     public static PetDetailResponseDto from(PetResult result) {
-        return PetDetailResponseDto.builder().petId(result.getPetId()).name(result.getName())
-            .species(result.getSpecies()).breed(result.getBreed()).profileMedia(null)
-            .birth(result.getBirth()).age(result.getAge()).sex(result.getSex())
-            .isNeutered(result.getIsNeutered()).weight(result.getWeight())
+        return PetDetailResponseDto.builder()
+            .petId(result.getPetId())
+            .name(result.getName())
+            .species(result.getSpecies())
+            .breed(result.getBreed())
+            .profileMedia(null)
+            .birth(result.getBirth())
+            .age(result.getAge())
+            .sex(result.getSex())
+            .isNeutered(result.getIsNeutered())
+            .weight(result.getWeight())
             .basicVaccinationCompleted(result.getBasicVaccinationCompleted())
-            .createdAt(ApiTime.from(result.getCreatedAt())).updatedAt(ApiTime.from(result.getUpdatedAt()))
+            .createdAt(ApiTime.from(result.getCreatedAt()))
+            .updatedAt(ApiTime.from(result.getUpdatedAt()))
             .build();
     }
 }
