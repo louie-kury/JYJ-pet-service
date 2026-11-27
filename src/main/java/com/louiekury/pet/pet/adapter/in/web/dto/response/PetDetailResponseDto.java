@@ -1,6 +1,5 @@
 package com.louiekury.pet.pet.adapter.in.web.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.louiekury.pet.global.web.response.ApiTime;
 import com.louiekury.pet.pet.application.createpet.PetResult;
 import java.math.BigDecimal;
@@ -14,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.ALWAYS)
 public class PetDetailResponseDto {
 
     private final String petId;
