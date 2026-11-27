@@ -38,11 +38,13 @@ class PetListMongoIntegrationTest {
     void connectToDedicatedDatabase() {
         client = MongoClients.create(System.getenv("PET_TEST_MONGODB_URI"));
         template = new MongoTemplate(client, "pet_listing_test_" + UUID.randomUUID().toString().replace("-", ""));
-        adapter = new PetListPersistenceAdapter(template);
+        adapter = new PetListPersistenceAdapter(template, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds());
     }
 
     @BeforeEach
     void clearOwnedTestCollections() {
+        adapter = new PetListPersistenceAdapter(template, com.louiekury.pet.pet.support.CatalogFixtures.species(),
+            com.louiekury.pet.pet.support.CatalogFixtures.noBreeds());
         template.getCollection("pets").deleteMany(new Document());
         template.getCollection("pet_species").deleteMany(new Document());
     }
@@ -113,19 +115,23 @@ class PetListMongoIntegrationTest {
     }
 
     @Test
-    @DisplayName("비활성 품종도 현재 기준 명칭으로 표시하고 종이 다른 같은 품종 ID를 섞지 않는다")
-    void resolvesCurrentInactiveBreedNamesWithinSpecies() {
+    @DisplayName("각 동물의 품종명은 MySQL 출력 포트에서 읽고 종과 품종을 섞지 않는다")
+    void resolvesBreedNamesFromCatalogPort() {
         template.getCollection("pets").insertMany(List.of(
-            withBreed(pet("dog", "owner-a", CREATED), "shared", "과거 강아지 품종"),
-            withBreed(pet("cat", "owner-a", CREATED).append("speciesId", "cat"), "shared", "과거 고양이 품종")));
-        template.getCollection("pet_species").insertMany(List.of(
-            new Document("_id", "dog").append("breeds", List.of(new Document("breedId", "shared")
-                .append("name", "강아지 현재 품종").append("active", false))),
-            new Document("_id", "cat").append("breeds", List.of(new Document("breedId", "shared")
-                .append("name", "고양이 현재 품종").append("active", true)))));
+            withBreed(pet("dog", "owner-a", CREATED), "dog-breed", "과거 강아지 품종"),
+            withBreed(pet("cat", "owner-a", CREATED).append("speciesId", "cat"), "cat-breed", "과거 고양이 품종")));
+        var breeds = (com.louiekury.pet.pet.application.port.out.GetPetBreedPort) (species, breedId) -> {
+            if ("dog".equals(species.getSpeciesId()) && "dog-breed".equals(breedId)) {
+                return java.util.Optional.of(new com.louiekury.pet.pet.domain.PetBreed(species, breedId, "강아지 현재 품종"));
+            }
+            if ("cat".equals(species.getSpeciesId()) && "cat-breed".equals(breedId)) {
+                return java.util.Optional.of(new com.louiekury.pet.pet.domain.PetBreed(species, breedId, "고양이 현재 품종"));
+            }
+            return java.util.Optional.empty();
+        };
+        adapter = new PetListPersistenceAdapter(template, com.louiekury.pet.pet.support.CatalogFixtures.species(), breeds);
 
         var result = adapter.getPets(GetPetsQuery.of(0, 4, "owner-a"));
-
         assertThat(result.getContent()).extracting(item -> item.getBreedName())
             .containsExactly("강아지 현재 품종", "고양이 현재 품종");
     }

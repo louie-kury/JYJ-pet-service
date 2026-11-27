@@ -107,7 +107,7 @@ class PetMongoIntegrationTest {
     @DisplayName("나노초 Clock에서도 최초 응답과 실제 Mongo 감사 시각은 정확히 일치한다")
     void responseAuditTimesExactlyMatchStoredMilliseconds() {
         CreatePetService service = new CreatePetService(
-            (species, breedId) -> Optional.empty(), adapter,
+            (species, breedId) -> Optional.empty(), com.louiekury.pet.pet.support.CatalogFixtures.species(), adapter,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00.123456789Z"), ZoneOffset.UTC));
         PetResult result = service.createPet(CreatePetCommand.of("루이", "dog", null, null,
             null, "MALE", null, null, null, null, "member-1"));
@@ -206,9 +206,9 @@ class PetMongoIntegrationTest {
             .append("name", "변경된 이름").append("code", "OUTDATED").append("active", false)
             .append("breeds", List.of(new Document("breedId", "poodle").append("name", "푸들").append("active", true),
                 new Document("breedId", "inactive").append("name", "미사용").append("active", false))));
-        var breeds = new PetBreedPersistenceAdapter(template);
-        var breed = breeds.getPetBreedBySpeciesAndId(PetSpecies.DOG, "poodle").orElseThrow();
-        assertThat(breed.getSpecies()).isSameAs(PetSpecies.DOG);
+        var breeds = template.findById("dog", PetBreedCatalogMongoDocument.class);
+        var breed = breeds.getPetBreed(new PetSpecies("dog", "강아지"), "poodle").orElseThrow();
+        assertThat(breed.getSpecies()).isEqualTo(new PetSpecies("dog", "강아지"));
         assertThat(breed.getName()).isEqualTo("푸들");
     }
 
@@ -220,9 +220,10 @@ class PetMongoIntegrationTest {
             .append("breeds", List.of(
                 new Document("breedId", "poodle").append("name", "푸들").append("active", true),
                 new Document("breedId", "inactive").append("name", "미사용").append("active", false))));
-        PetSpecies species = condition.equals("wrong-species") ? PetSpecies.CAT : PetSpecies.DOG;
+        PetSpecies species = condition.equals("wrong-species") ? new PetSpecies("cat", "고양이") : new PetSpecies("dog", "강아지");
         String breedId = condition.equals("wrong-species") ? "poodle" : condition;
-        assertThat(new PetBreedPersistenceAdapter(template).getPetBreedBySpeciesAndId(species, breedId)).isEmpty();
+        PetBreedCatalogMongoDocument catalog = template.findById(species.getSpeciesId(), PetBreedCatalogMongoDocument.class);
+        assertThat(catalog == null ? Optional.empty() : catalog.getPetBreed(species, breedId)).isEmpty();
     }
 
     @Test
@@ -232,7 +233,7 @@ class PetMongoIntegrationTest {
             .append("breeds", List.of(
                 new Document("breedId", "poodle").append("name", "첫 품종").append("active", true),
                 new Document("breedId", "poodle").append("name", "다른 품종").append("active", true))));
-        assertThatThrownBy(() -> new PetBreedPersistenceAdapter(template).getPetBreedBySpeciesAndId(PetSpecies.DOG, "poodle"))
+        assertThatThrownBy(() -> template.findById("dog", PetBreedCatalogMongoDocument.class).getPetBreed(new PetSpecies("dog", "강아지"), "poodle"))
             .isInstanceOfSatisfying(BusinessException.class,
                 exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
     }
@@ -245,9 +246,9 @@ class PetMongoIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"dog", "cat"})
-    @DisplayName("종 기준 문서가 없어도 등록하며 enum 종 ID는 기존 문자열 그대로 저장한다")
+    @DisplayName("MySQL 종 확인 후 기존 종 ID를 MongoDB에 저장한다")
     void storesCanonicalEnumIdentifierWithoutCatalog(String speciesId) {
-        CreatePetService service = new CreatePetService(new PetBreedPersistenceAdapter(template), adapter,
+        CreatePetService service = new CreatePetService(com.louiekury.pet.pet.support.CatalogFixtures.noBreeds(), com.louiekury.pet.pet.support.CatalogFixtures.species(), adapter,
             Clock.fixed(CREATED, ZoneOffset.UTC));
         PetResult result = service.createPet(CreatePetCommand.of("루이", speciesId, null, null,
             null, "MALE", null, null, null, null, "member-1"));
@@ -259,7 +260,7 @@ class PetMongoIntegrationTest {
 
     private static PetResult result(String name) {
         LocalDate today = LocalDate.of(2026, 11, 23);
-        Pet pet = Pet.create(name, PetSpecies.DOG, null, null, LocalDate.of(2024, 2, 29), "MALE",
+        Pet pet = Pet.create(name, new PetSpecies("dog", "강아지"), null, null, LocalDate.of(2024, 2, 29), "MALE",
             null, new BigDecimal("5.123"), null);
         return PetResult.of(pet, null, CREATED, java.time.Period.between(pet.getBirth(), today));
     }

@@ -51,9 +51,9 @@ class GetPetsServiceTest {
     @DisplayName("여러 동물의 현재 이름·종·품종·성별을 서로 섞지 않고 반환한다")
     void preservesEachPetsSummaryFields() {
         when(pets.getPets(any())).thenReturn(PetListPage.of(List.of(
-            PetListData.of("pet-dog", "루이", PetSpecies.DOG, "poodle", "푸들", null,
+            PetListData.of("pet-dog", "루이", new PetSpecies("dog", "강아지"), "poodle", "푸들", null,
                 LocalDate.of(2023, 5, 1), "MALE"),
-            PetListData.of("pet-cat", "쿠리", PetSpecies.CAT, null, null, null, null, "FEMALE")), 2));
+            PetListData.of("pet-cat", "쿠리", new PetSpecies("cat", "고양이"), null, null, null, null, "FEMALE")), 2));
 
         GetPetsResult result = service.getPets(GetPetsQuery.of(0, 4, "owner-a"));
 
@@ -169,7 +169,7 @@ class GetPetsServiceTest {
     }
 
     private static PetListData pet(LocalDate birth, String mediaId) {
-        return PetListData.of("pet-1", "루이", PetSpecies.DOG, null, null, mediaId, birth, "MALE");
+        return PetListData.of("pet-1", "루이", new PetSpecies("dog", "강아지"), null, null, mediaId, birth, "MALE");
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {

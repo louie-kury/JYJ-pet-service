@@ -29,7 +29,7 @@ class PetListPersistenceAdapterTest {
     @BeforeEach
     void setUp() {
         template = mock(MongoTemplate.class);
-        adapter = new PetListPersistenceAdapter(template);
+        adapter = new PetListPersistenceAdapter(template, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds());
     }
 
     @Test
@@ -80,9 +80,9 @@ class PetListPersistenceAdapterTest {
                 new Document("breedId", "poodle").append("name", "푸들"))));
         when(template.count(any(Query.class), eq("pets"))).thenReturn(1L);
         when(template.find(any(Query.class), eq(Document.class), eq("pets"))).thenReturn(List.of(pet));
-        when(template.find(any(Query.class), eq(Document.class), eq("pet_species")))
-            .thenThrow(new DataAccessResourceFailureException("secret-db-host"));
-        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.PET_QUERY_UNAVAILABLE);
+        adapter = new PetListPersistenceAdapter(template, com.louiekury.pet.pet.support.CatalogFixtures.species(),
+            (species, breedId) -> { throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE); });
+        assertCode(() -> adapter.getPets(GetPetsQuery.of(0, 4, "owner-a")), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
     }
 
     private static void assertCode(Runnable action, ErrorCode code) {

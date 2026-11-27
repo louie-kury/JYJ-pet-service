@@ -8,7 +8,6 @@ import com.mongodb.MongoException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
@@ -33,7 +32,7 @@ public class PetDetailPersistenceAdapter implements GetPetPort {
                 .and("deletedAt").is(null);
             Document doc = mongo.findOne(Query.query(criteria), Document.class, "pets");
             if (doc == null) return Optional.empty();
-            PetListData summary = listAdapter.getPetData(doc, listAdapter.getBreedCatalogs(List.of(doc)));
+            PetListData summary = listAdapter.getPetData(doc, new PetListPersistenceAdapter.CatalogCache());
             Object value = doc.get("weight");
             BigDecimal weight = value == null ? null : ((Decimal128) value).bigDecimalValue();
             return Optional.of(new Data(summary, doc.getBoolean("isNeutered"), weight,

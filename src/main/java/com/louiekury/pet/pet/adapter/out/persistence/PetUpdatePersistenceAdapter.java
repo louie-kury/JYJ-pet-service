@@ -1,6 +1,10 @@
 package com.louiekury.pet.pet.adapter.out.persistence;
 
 import com.louiekury.pet.pet.application.updatepet.UpdatePetPort;
+import com.louiekury.pet.pet.application.port.out.GetPetSpeciesPort;
+import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.domain.PetSpecies;
+import com.louiekury.pet.pet.domain.PetBreed;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;
@@ -25,6 +29,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PetUpdatePersistenceAdapter implements UpdatePetPort {
     private final MongoTemplate mongo;
+    private final GetPetSpeciesPort speciesPort;
+    private final GetPetBreedPort breedPort;
 
     @Override
     public Optional<Data> find(String id, Map<String, Object> changes, String caregiverId) {
@@ -75,18 +81,9 @@ public class PetUpdatePersistenceAdapter implements UpdatePetPort {
 
     private String breedName(Document pet, String species, String breed) {
         if (breed == null) return null;
-        Document catalog = mongo.findById(species, Document.class, "pet_species");
-        String found = null;
-        if (catalog != null && catalog.get("breeds") instanceof Iterable<?> breeds) {
-            for (Object value : breeds) {
-                if (value instanceof Map<?, ?> entry && breed.equals(entry.get("breedId"))) {
-                    if (found != null || !(entry.get("name") instanceof String name) || name.isBlank()) {
-                        throw new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE);
-                    }
-                    found = name;
-                }
-            }
-        }
+        PetSpecies speciesData = speciesPort.getPetSpecies(species)
+            .orElseThrow(() -> new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
+        String found = breedPort.getPetBreedBySpeciesAndId(speciesData, breed).map(PetBreed::getName).orElse(null);
         if (found != null) return found;
         if (pet.get("registration") instanceof Map<?, ?> registration
                 && registration.get("responseSnapshot") instanceof Map<?, ?> snapshot

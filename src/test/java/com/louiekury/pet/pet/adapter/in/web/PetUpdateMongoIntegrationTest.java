@@ -46,7 +46,7 @@ class PetUpdateMongoIntegrationTest {
     void connect() {
         client = MongoClients.create(System.getenv("PET_TEST_MONGODB_URI"));
         mongo = new MongoTemplate(client, "pet_update_test_" + UUID.randomUUID().toString().replace("-", ""));
-        var service = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo), new PetBreedPersistenceAdapter(mongo),
+        var service = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds()), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds(), com.louiekury.pet.pet.support.CatalogFixtures.species(),
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
@@ -175,7 +175,7 @@ class PetUpdateMongoIntegrationTest {
                 .append("registration.responseSnapshot", snapshot)));
 
         mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));
-        var page = new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4, "owner-a"));
+        var page = new PetListPersistenceAdapter(mongo, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds()).getPets(GetPetsQuery.of(0, 4, "owner-a"));
         assertThat(page.getContent()).hasSize(1);
         assertThat(page.getContent().get(0).getBreedName()).isEqualTo("이전 품종");
     }
@@ -221,7 +221,7 @@ class PetUpdateMongoIntegrationTest {
         Document before = stored("pet-1");
 
         mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));
-        assertThatThrownBy(() -> new PetListPersistenceAdapter(mongo).getPets(GetPetsQuery.of(0, 4, "owner-a")))
+        assertThatThrownBy(() -> new PetListPersistenceAdapter(mongo, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds()).getPets(GetPetsQuery.of(0, 4, "owner-a")))
             .isInstanceOfSatisfying(BusinessException.class,
                 error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
         mongo.getCollection("pets").updateOne(new Document("_id", "pet-1"), new Document("$set", new Document("caregiverId", "owner-a")));

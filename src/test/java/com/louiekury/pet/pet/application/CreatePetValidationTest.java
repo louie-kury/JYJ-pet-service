@@ -99,7 +99,7 @@ class CreatePetValidationTest {
 
     private static PetResult createWith(String name, String breed, String media, LocalDate birth,
             String sex, BigDecimal weight) {
-        CreatePetService service = new CreatePetService(mock(GetPetBreedPort.class), mock(CreatePetPort.class),
+        CreatePetService service = new CreatePetService(mock(GetPetBreedPort.class), com.louiekury.pet.pet.support.CatalogFixtures.species(), mock(CreatePetPort.class),
             Clock.fixed(Instant.parse("2026-11-23T00:00:00Z"), ZoneOffset.UTC));
         return service.createPet(CreatePetCommand.of(name, "dog", breed, media, birth, sex, null,
             weight, null, null, "member-1"));

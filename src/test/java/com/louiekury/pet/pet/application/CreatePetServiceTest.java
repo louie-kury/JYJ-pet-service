@@ -39,7 +39,7 @@ class CreatePetServiceTest {
     void setUp() {
         breeds = mock(GetPetBreedPort.class);
         insert = mock(CreatePetPort.class);
-        service = new CreatePetService(breeds, insert, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new CreatePetService(breeds, com.louiekury.pet.pet.support.CatalogFixtures.species(), insert, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -60,8 +60,8 @@ class CreatePetServiceTest {
     @Test
     @DisplayName("전체 기본정보와 품종을 등록하면 입력값과 기준 명칭이 결과에 반영된다")
     void returnsEnteredFieldsAndResolvedBreed() {
-        when(breeds.getPetBreedBySpeciesAndId(PetSpecies.DOG, "poodle"))
-            .thenReturn(Optional.of(new PetBreed(PetSpecies.DOG, "poodle", "푸들")));
+        when(breeds.getPetBreedBySpeciesAndId(new PetSpecies("dog", "강아지"), "poodle"))
+            .thenReturn(Optional.of(new PetBreed(new PetSpecies("dog", "강아지"), "poodle", "푸들")));
         PetResult result = service.createPet(CreatePetCommand.of("루이", "dog", "poodle", null,
             LocalDate.of(2023, 5, 1), "FEMALE", false, new BigDecimal("5.123"), true, "request-1", "member-1"));
         assertThat(result.getBreed().getName()).isEqualTo("푸들");
@@ -95,12 +95,12 @@ class CreatePetServiceTest {
     @DisplayName("다른 종의 품종을 보내면 저장하지 않는다")
     void rejectsBreedOutsideSelectedSpecies() {
         assertCode(() -> service.createPet(command("other-breed", null, null, null)), ErrorCode.VALIDATION_ERROR);
-        verify(breeds).getPetBreedBySpeciesAndId(PetSpecies.DOG, "other-breed");
+        verify(breeds).getPetBreedBySpeciesAndId(new PetSpecies("dog", "강아지"), "other-breed");
         verifyNoInteractions(insert);
     }
 
     @Test
-    @DisplayName("품종을 지정하지 않으면 기준 데이터 조회 장애와 무관하게 enum 종으로 등록한다")
+    @DisplayName("품종을 지정하지 않으면 품종 조회 없이 MySQL 종으로 등록한다")
     void registersWithoutConsultingBreedDatabase() {
         when(breeds.getPetBreedBySpeciesAndId(any(), anyString()))
             .thenThrow(new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
@@ -112,7 +112,7 @@ class CreatePetServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"DOG", "CAT", "rabbit"})
-    @DisplayName("종 enum 외부 ID 이외의 별칭은 저장하지 않는다")
+    @DisplayName("기준 데이터에 없는 종 식별자는 저장하지 않는다")
     void rejectsUnsupportedSpeciesIdentifiers(String id) {
         assertCode(() -> service.createPet(CreatePetCommand.of("루이", id, null, null, null,
             "MALE", null, null, null, null, "member-1")), ErrorCode.VALIDATION_ERROR);
@@ -123,7 +123,7 @@ class CreatePetServiceTest {
     @Test
     @DisplayName("품종 조회 장애는 품종 미상 등록으로 바꾸지 않고 실패시킨다")
     void preservesBreedLookupFailure() {
-        when(breeds.getPetBreedBySpeciesAndId(PetSpecies.DOG, "poodle"))
+        when(breeds.getPetBreedBySpeciesAndId(new PetSpecies("dog", "강아지"), "poodle"))
             .thenThrow(new BusinessException(ErrorCode.REFERENCE_DATA_UNAVAILABLE));
         assertCode(() -> service.createPet(command("poodle", null, null, null)), ErrorCode.REFERENCE_DATA_UNAVAILABLE);
         verifyNoInteractions(insert);

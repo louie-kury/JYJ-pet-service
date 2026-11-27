@@ -38,7 +38,7 @@ class PetWebTest {
     void setUp() {
         insert = mock(CreatePetPort.class);
         GetPetBreedPort breeds = mock(GetPetBreedPort.class);
-        CreatePetService service = new CreatePetService(breeds, insert,
+        CreatePetService service = new CreatePetService(breeds, com.louiekury.pet.pet.support.CatalogFixtures.species(), insert,
             Clock.fixed(Instant.parse("2026-11-22T15:30:00Z"), ZoneOffset.UTC));
         auth = mock(AuthenticatedMember.class);
         when(auth.require("Bearer valid")).thenReturn("member-1");
@@ -51,7 +51,7 @@ class PetWebTest {
     }
 
     @Test
-    @DisplayName("고양이 enum의 외부 ID와 표시 이름을 기존 응답 구조로 반환한다")
+    @DisplayName("종 카탈로그의 식별자와 표시 이름을 기존 응답 구조로 반환한다")
     void preservesCatResponseContract() throws Exception {
         mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"루이\",\"speciesId\":\"cat\",\"sex\":\"MALE\"}"))
@@ -63,7 +63,7 @@ class PetWebTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"DOG", "CAT", "rabbit"})
-    @DisplayName("API는 enum 이름이나 미지원 종을 외부 ID 별칭으로 허용하지 않는다")
+    @DisplayName("API는 기준 데이터에 없는 종 식별자를 허용하지 않는다")
     void rejectsSpeciesAliases(String speciesId) throws Exception {
         mvc.perform(post("/api/pets").header("Authorization", "Bearer valid").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"루이\",\"speciesId\":\"" + speciesId + "\",\"sex\":\"MALE\"}"))

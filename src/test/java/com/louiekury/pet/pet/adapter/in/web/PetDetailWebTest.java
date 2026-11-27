@@ -34,7 +34,7 @@ class PetDetailWebTest {
         when(auth.require("Bearer valid")).thenReturn("member-1");
         var now = java.time.Instant.parse("2026-11-26T00:00:00Z");
         when(detail.getPet("pet-1", "member-1")).thenReturn(com.louiekury.pet.pet.application.createpet.PetResult.updated(
-            "pet-1", "루이", com.louiekury.pet.pet.domain.PetSpecies.DOG, null, null, null, null,
+            "pet-1", "루이", new com.louiekury.pet.pet.domain.PetSpecies("dog", "강아지"), null, null, null, null,
             "MALE", true, new java.math.BigDecimal("5.2"), false, now, now));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail)))
@@ -49,7 +49,7 @@ class PetDetailWebTest {
         var auth = mock(AuthenticatedMember.class);
         var insert = mock(com.louiekury.pet.pet.application.port.out.CreatePetPort.class);
         var service = new com.louiekury.pet.pet.application.createpet.CreatePetService(
-            mock(com.louiekury.pet.pet.application.port.out.GetPetBreedPort.class), insert,
+            mock(com.louiekury.pet.pet.application.port.out.GetPetBreedPort.class), com.louiekury.pet.pet.support.CatalogFixtures.species(), insert,
             java.time.Clock.fixed(java.time.Instant.parse("2026-11-26T00:00:00Z"), java.time.ZoneOffset.UTC));
         when(auth.require("Bearer valid")).thenReturn("member-1");
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(

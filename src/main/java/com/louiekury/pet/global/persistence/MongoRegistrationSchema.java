@@ -59,7 +59,7 @@ public final class MongoRegistrationSchema {
         }
     }
 
-    /** 현재 앱은 종을 enum으로 관리한다. V1의 검증 의미는 위 메서드에 그대로 보존한다. */
+    /** 현재 앱은 종·품종을 MySQL에서 조회한다. 과거 V1 검증 의미는 위 메서드에 그대로 보존한다. */
     public static void verifyCurrentRegistrationSchema(MongoDatabase database) {
         verifyIndex(database, "pets", "registration_request_key_unique",
             new Document("registration.requestKey", 1),
