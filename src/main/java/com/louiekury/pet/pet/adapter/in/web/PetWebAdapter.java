@@ -41,32 +41,32 @@ public class PetWebAdapter {
 
     private Map<String, Object> toChanges(UpdatePetRequest request) {
         Map<String, Object> changes = new LinkedHashMap<>();
-        if (request.hasName()) {
-            changes.put("name", request.getName());
+        if (request.getName().isPresent()) {
+            changes.put("name", request.getName().getValue());
         }
-        if (request.hasSpeciesId()) {
-            changes.put("speciesId", request.getSpeciesId());
+        if (request.getSpeciesId().isPresent()) {
+            changes.put("speciesId", request.getSpeciesId().getValue());
         }
-        if (request.hasBreedId()) {
-            changes.put("breedId", request.getBreedId());
+        if (request.getBreedId().isPresent()) {
+            changes.put("breedId", request.getBreedId().getValue());
         }
-        if (request.hasProfileMediaId()) {
-            changes.put("profileMediaId", request.getProfileMediaId());
+        if (request.getProfileMediaId().isPresent()) {
+            changes.put("profileMediaId", request.getProfileMediaId().getValue());
         }
-        if (request.hasBirth()) {
-            changes.put("birth", request.getBirth());
+        if (request.getBirth().isPresent()) {
+            changes.put("birth", request.getBirth().getValue());
         }
-        if (request.hasSex()) {
-            changes.put("sex", request.getSex());
+        if (request.getSex().isPresent()) {
+            changes.put("sex", request.getSex().getValue());
         }
-        if (request.hasIsNeutered()) {
-            changes.put("isNeutered", request.getIsNeutered());
+        if (request.getIsNeutered().isPresent()) {
+            changes.put("isNeutered", request.getIsNeutered().getValue());
         }
-        if (request.hasWeight()) {
-            changes.put("weight", request.getWeight());
+        if (request.getWeight().isPresent()) {
+            changes.put("weight", request.getWeight().getValue());
         }
-        if (request.hasBasicVaccinationCompleted()) {
-            changes.put("basicVaccinationCompleted", request.getBasicVaccinationCompleted());
+        if (request.getBasicVaccinationCompleted().isPresent()) {
+            changes.put("basicVaccinationCompleted", request.getBasicVaccinationCompleted().getValue());
         }
         return changes;
     }

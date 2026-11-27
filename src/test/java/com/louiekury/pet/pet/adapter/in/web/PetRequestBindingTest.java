@@ -24,17 +24,17 @@ class PetRequestBindingTest {
     @Test
     void distinguishesOmittedNullAndValue() {
         UpdatePetRequest request = mapper.readValue("{\"weight\":null,\"name\":\"루이\",\"isNeutered\":false}", UpdatePetRequest.class);
-        assertThat(request.hasWeight()).isTrue();
-        assertThat(request.getWeight()).isNull();
-        assertThat(request.getName()).isEqualTo("루이");
-        assertThat(request.getIsNeutered()).isFalse();
-        assertThat(request.hasBirth()).isFalse();
+        assertThat(request.getWeight().isPresent()).isTrue();
+        assertThat(request.getWeight().getValue()).isNull();
+        assertThat(request.getName().getValue()).isEqualTo("루이");
+        assertThat(request.getIsNeutered().getValue()).isFalse();
+        assertThat(request.getBirth().isPresent()).isFalse();
     }
 
     @Test
     void preservesDecimalPrecision() {
         UpdatePetRequest request = mapper.readValue("{\"weight\":200.00000000000000001}", UpdatePetRequest.class);
-        assertThat(request.getWeight()).isEqualTo(new BigDecimal("200.00000000000000001"));
+        assertThat(request.getWeight().getValue()).isEqualTo(new BigDecimal("200.00000000000000001"));
     }
 
     @Test
