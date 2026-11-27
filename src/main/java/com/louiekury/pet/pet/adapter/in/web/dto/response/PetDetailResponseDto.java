@@ -1,5 +1,6 @@
 package com.louiekury.pet.pet.adapter.in.web.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.louiekury.pet.global.web.response.ApiTime;
 import com.louiekury.pet.pet.application.createpet.PetResult;
 import java.math.BigDecimal;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class PetDetailResponseDto {
 
     private final String petId;
@@ -30,20 +32,12 @@ public class PetDetailResponseDto {
     private final OffsetDateTime updatedAt;
 
     public static PetDetailResponseDto from(PetResult result) {
-        return PetDetailResponseDto.builder()
-            .petId(result.getPetId())
-            .name(result.getName())
-            .species(result.getSpecies())
-            .breed(result.getBreed())
-            .profileMedia(null)
-            .birth(result.getBirth())
-            .age(result.getAge())
-            .sex(result.getSex())
-            .isNeutered(result.getIsNeutered())
-            .weight(result.getWeight())
+        return PetDetailResponseDto.builder().petId(result.getPetId()).name(result.getName())
+            .species(result.getSpecies()).breed(result.getBreed()).profileMedia(null)
+            .birth(result.getBirth()).age(result.getAge()).sex(result.getSex())
+            .isNeutered(result.getIsNeutered()).weight(result.getWeight())
             .basicVaccinationCompleted(result.getBasicVaccinationCompleted())
-            .createdAt(ApiTime.from(result.getCreatedAt()))
-            .updatedAt(ApiTime.from(result.getUpdatedAt()))
+            .createdAt(ApiTime.from(result.getCreatedAt())).updatedAt(ApiTime.from(result.getUpdatedAt()))
             .build();
     }
 }

@@ -19,14 +19,11 @@ public class PetListItemResult {
     private final String sex;
 
     public static PetListItemResult of(PetListData pet, Period age) {
-        return PetListItemResult.builder()
-            .petId(pet.getPetId())
-            .name(pet.getName())
+        return PetListItemResult.builder().petId(pet.getPetId()).name(pet.getName())
             .species(new Species(pet.getSpecies().getSpeciesId(), pet.getSpecies().getName()))
             .breed(pet.getBreedId() == null ? null : new Breed(pet.getBreedId(), pet.getBreedName()))
             .age(age == null ? null : new Age(age.getYears(), age.getMonths()))
-            .sex(pet.getSex())
-            .build();
+            .sex(pet.getSex()).build();
     }
 
     @Getter

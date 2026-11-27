@@ -20,15 +20,11 @@ public class GetPetService implements GetPetUseCase {
     private final Clock clock;
 
     public PetResult getPet(String id, String caregiverId) {
-        if (caregiverId == null || caregiverId.isBlank()) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
+        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         GetPetPort.Data data = port.getPet(id, caregiverId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-        PetListData pet = data.getSummary();
-        if (pet.getProfileMediaId() != null) {
-            throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
-        }
+        PetListData pet = data.summary();
+        if (pet.getProfileMediaId() != null) throw new BusinessException(ErrorCode.MEDIA_SERVICE_UNAVAILABLE);
         LocalDate today = clock.instant().atZone(ZoneId.of("Asia/Seoul")).toLocalDate();
         LocalDate birth = pet.getBirth();
         if (birth != null && (birth.getYear() < 1 || birth.getYear() > 9999 || birth.isAfter(today))) {
@@ -36,6 +32,6 @@ public class GetPetService implements GetPetUseCase {
         }
         return PetResult.updated(pet.getPetId(), pet.getName(), pet.getSpecies(), pet.getBreedId(),
             pet.getBreedName(), birth, birth == null ? null : Period.between(birth, today), pet.getSex(),
-            data.getNeutered(), data.getWeight(), data.getVaccination(), data.getCreatedAt(), data.getUpdatedAt());
+            data.neutered(), data.weight(), data.vaccination(), data.createdAt(), data.updatedAt());
     }
 }

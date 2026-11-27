@@ -32,7 +32,7 @@ class VaccinePersistenceAdapterTest {
             RowMapper<VaccineResult> mapper = invocation.getArgument(1);
             return List.of(mapper.mapRow(row, 0), mapper.mapRow(row, 1));
         });
-        List<VaccineResult> results = adapter.getVaccines();
+        List<VaccineResult> results = adapter.listVaccines();
         assertThat(results).extracting(VaccineResult::getVaccineNameId)
             .containsExactly("first", "second");
         assertThat(results).extracting(VaccineResult::getName).containsExactly("광견병", "종합백신");
@@ -41,13 +41,13 @@ class VaccinePersistenceAdapterTest {
     @Test
     void listReturnsEmptyWhenNoVaccinesExist() {
         when(jdbc.query(anyString(), any(RowMapper.class))).thenReturn(List.of());
-        assertThat(adapter.getVaccines()).isEmpty();
+        assertThat(adapter.listVaccines()).isEmpty();
     }
 
     @Test
     void listDatabaseFailureIsUnavailable() {
         when(jdbc.query(anyString(), any(RowMapper.class))).thenThrow(new DataAccessResourceFailureException("down"));
-        assertThatThrownBy(adapter::getVaccines).isInstanceOf(BusinessException.class)
+        assertThatThrownBy(adapter::listVaccines).isInstanceOf(BusinessException.class)
             .extracting(e -> ((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.VACCINE_QUERY_UNAVAILABLE);
     }
 

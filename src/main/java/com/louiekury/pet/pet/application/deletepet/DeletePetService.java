@@ -15,11 +15,7 @@ public class DeletePetService implements DeletePetUseCase {
     private final Clock clock;
 
     public void delete(String id, String caregiverId) {
-        if (caregiverId == null || caregiverId.isBlank()) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        if (!port.delete(id, caregiverId, clock.instant())) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
-        }
+        if (caregiverId == null || caregiverId.isBlank()) throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        if (!port.delete(id, caregiverId, clock.instant())) throw new BusinessException(ErrorCode.NOT_FOUND);
     }
 }

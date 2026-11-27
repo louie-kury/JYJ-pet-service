@@ -15,9 +15,6 @@ public class PetListPage {
     private final long totalElements;
 
     public static PetListPage of(List<PetListData> content, long totalElements) {
-        return PetListPage.builder()
-            .content(List.copyOf(content))
-            .totalElements(totalElements)
-            .build();
+        return PetListPage.builder().content(List.copyOf(content)).totalElements(totalElements).build();
     }
 }

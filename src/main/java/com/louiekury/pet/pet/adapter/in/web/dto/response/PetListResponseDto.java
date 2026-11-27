@@ -20,14 +20,9 @@ public class PetListResponseDto {
     private final boolean hasNext;
 
     public static PetListResponseDto from(GetPetsResult result) {
-        return PetListResponseDto.builder()
-            .content(result.getContent().stream()
+        return PetListResponseDto.builder().content(result.getContent().stream()
                 .map(PetListItemResponseDto::from).toList())
-            .page(result.getPage())
-            .size(result.getSize())
-            .totalElements(result.getTotalElements())
-            .totalPages(result.getTotalPages())
-            .hasNext(result.isHasNext())
-            .build();
+            .page(result.getPage()).size(result.getSize()).totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages()).hasNext(result.isHasNext()).build();
     }
 }

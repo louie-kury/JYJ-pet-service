@@ -4,7 +4,7 @@ import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
 import com.louiekury.pet.vaccine.application.port.out.CreateVaccinePort;
-import com.louiekury.pet.vaccine.application.port.out.GetVaccinesPort;
+import com.louiekury.pet.vaccine.application.port.out.ListVaccinesPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -17,12 +17,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class VaccinePersistenceAdapter implements CreateVaccinePort, GetVaccinesPort {
+public class VaccinePersistenceAdapter implements CreateVaccinePort, ListVaccinesPort {
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
     @Override
-    public List<VaccineResult> getVaccines() {
+    public List<VaccineResult> listVaccines() {
         try {
             return jdbc.query("SELECT uuid, name FROM vaccine ORDER BY id",
                 (row, index) -> new VaccineResult(row.getString("uuid"), row.getString("name")));

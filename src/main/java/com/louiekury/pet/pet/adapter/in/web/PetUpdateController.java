@@ -3,7 +3,6 @@ package com.louiekury.pet.pet.adapter.in.web;
 import com.louiekury.pet.global.web.response.ApiResponse;
 import com.louiekury.pet.pet.adapter.in.web.dto.request.UpdatePetRequest;
 import com.louiekury.pet.pet.adapter.in.web.dto.response.PetDetailResponseDto;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.http.MediaType;
@@ -22,7 +21,7 @@ public class PetUpdateController {
 
     @PatchMapping(value = "/{petId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PetDetailResponseDto>> updatePet(
-            @PathVariable String petId, @Valid @RequestBody UpdatePetRequest request,
+            @PathVariable String petId, @RequestBody UpdatePetRequest request,
             @RequestAttribute(PetRegistrationAuthInterceptor.CAREGIVER_ID) String caregiverId) {
         return petWebAdapter.updatePet(petId, request, caregiverId);
     }

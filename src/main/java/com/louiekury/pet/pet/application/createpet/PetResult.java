@@ -30,39 +30,24 @@ public class PetResult {
     private final Instant updatedAt;
 
     public static PetResult of(Pet pet, PetBreed breed, Instant createdAt, Period age) {
-        return PetResult.builder()
-            .petId(pet.getPetId())
-            .name(pet.getName())
+        return PetResult.builder().petId(pet.getPetId()).name(pet.getName())
             .species(new Species(pet.getSpecies().getSpeciesId(), pet.getSpecies().getName()))
             .breed(breed == null ? null : new Breed(breed.getBreedId(), breed.getName()))
-            .birth(pet.getBirth())
-            .age(age == null ? null : new Age(age.getYears(), age.getMonths()))
-            .sex(pet.getSex())
-            .isNeutered(pet.getIsNeutered())
-            .weight(pet.getWeight())
+            .birth(pet.getBirth()).age(age == null ? null : new Age(age.getYears(), age.getMonths()))
+            .sex(pet.getSex()).isNeutered(pet.getIsNeutered()).weight(pet.getWeight())
             .basicVaccinationCompleted(pet.getBasicVaccinationCompleted())
-            .createdAt(createdAt)
-            .updatedAt(createdAt)
-            .build();
+            .createdAt(createdAt).updatedAt(createdAt).build();
     }
 
     public static PetResult updated(String id, String name, com.louiekury.pet.pet.domain.PetSpecies species,
             String breedId, String breedName, LocalDate birth, Period age, String sex,
             Boolean neutered, BigDecimal weight, Boolean vaccination, Instant createdAt, Instant updatedAt) {
-        return PetResult.builder()
-            .petId(id)
-            .name(name)
+        return PetResult.builder().petId(id).name(name)
             .species(new Species(species.getSpeciesId(), species.getName()))
             .breed(breedId == null ? null : new Breed(breedId, breedName))
-            .birth(birth)
-            .age(age == null ? null : new Age(age.getYears(), age.getMonths()))
-            .sex(sex)
-            .isNeutered(neutered)
-            .weight(weight)
-            .basicVaccinationCompleted(vaccination)
-            .createdAt(createdAt)
-            .updatedAt(updatedAt)
-            .build();
+            .birth(birth).age(age == null ? null : new Age(age.getYears(), age.getMonths()))
+            .sex(sex).isNeutered(neutered).weight(weight).basicVaccinationCompleted(vaccination)
+            .createdAt(createdAt).updatedAt(updatedAt).build();
     }
 
     @Getter

@@ -32,7 +32,7 @@ class PetDetailMongoIntegrationTest {
     }
     @AfterAll void close() { if (mongo != null) mongo.getDb().drop(); if (client != null) client.close(); }
     @Test void returnsOnlyMatchingActiveOwner() {
-        assertThat(adapter.getPet("pet-1", "owner-1")).get().satisfies(data -> assertThat(data.getSummary().getName()).isEqualTo("루이"));
+        assertThat(adapter.getPet("pet-1", "owner-1")).get().satisfies(data -> assertThat(data.summary().getName()).isEqualTo("루이"));
         assertThat(adapter.getPet("pet-1", "owner-2")).isEmpty();
         assertThat(adapter.getPet("deleted", "owner-1")).isEmpty();
         assertThat(adapter.getPet("unowned", "owner-1")).isEmpty();
