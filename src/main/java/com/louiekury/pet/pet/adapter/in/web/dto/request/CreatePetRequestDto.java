@@ -1,5 +1,6 @@
 package com.louiekury.pet.pet.adapter.in.web.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Getter;
@@ -8,14 +9,14 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class CreatePetRequestDto {
-    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "필수 값입니다.")
     private String name;
-    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "필수 값입니다.")
     private String speciesId;
     private String breedId;
     private String profileMediaId;
     private LocalDate birth;
-    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    @NotBlank(message = "필수 값입니다.")
     private String sex;
     private Boolean isNeutered;
     private BigDecimal weight;
