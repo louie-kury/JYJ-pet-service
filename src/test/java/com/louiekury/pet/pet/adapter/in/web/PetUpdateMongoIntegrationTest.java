@@ -50,6 +50,7 @@ class PetUpdateMongoIntegrationTest {
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.port.in.GetPetUseCase.class))))
+            .setMessageConverters(RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler())
             .defaultRequest(patch("/").requestAttr(PetRegistrationAuthInterceptor.CAREGIVER_ID, "owner-a"))
             .build();

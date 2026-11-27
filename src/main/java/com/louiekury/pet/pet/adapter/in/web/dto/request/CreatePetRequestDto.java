@@ -1,106 +1,59 @@
 package com.louiekury.pet.pet.adapter.in.web.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.louiekury.pet.shared.exception.BusinessException;
-import com.louiekury.pet.shared.exception.ErrorCode;
-import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.annotation.JsonDeserialize;
+import lombok.NoArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
 public class CreatePetRequestDto {
+    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    private String name;
+    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    private String speciesId;
+    private String breedId;
+    private String profileMediaId;
+    private LocalDate birth;
+    @jakarta.validation.constraints.NotBlank(message = "필수 값입니다.")
+    private String sex;
+    private Boolean isNeutered;
+    private BigDecimal weight;
+    private Boolean basicVaccinationCompleted;
 
-    @NotBlank
-    private final String name;
-    @NotBlank
-    private final String speciesId;
-    private final String breedId;
-    private final String profileMediaId;
-    private final LocalDate birth;
-    @NotBlank
-    private final String sex;
-    private final Boolean isNeutered;
-    private final BigDecimal weight;
-    private final Boolean basicVaccinationCompleted;
-
-    public static CreatePetRequestDto of(String name, String speciesId, String breedId,
-            String profileMediaId, LocalDate birth, String sex, Boolean isNeutered,
-            BigDecimal weight, Boolean basicVaccinationCompleted) {
-        return CreatePetRequestDto.builder().name(name).speciesId(speciesId).breedId(breedId)
-            .profileMediaId(profileMediaId).birth(birth).sex(sex).isNeutered(isNeutered)
-            .weight(weight).basicVaccinationCompleted(basicVaccinationCompleted).build();
+    public void setName(Object value) {
+        this.name = RequestValue.text(value);
     }
 
-    @JsonCreator
-    public static CreatePetRequestDto fromJson(@JsonProperty("name") JsonNode name,
-            @JsonProperty("speciesId") JsonNode speciesId,
-            @JsonProperty("breedId") JsonNode breedId,
-            @JsonProperty("profileMediaId") JsonNode profileMediaId,
-            @JsonProperty("birth") JsonNode birth,
-            @JsonProperty("sex") JsonNode sex,
-            @JsonProperty("isNeutered") JsonNode isNeutered,
-            @JsonProperty("weight") @JsonDeserialize(using = StrictDecimalDeserializer.class) BigDecimal weight,
-            @JsonProperty("basicVaccinationCompleted") JsonNode basicVaccinationCompleted) {
-        return of(text(name), text(speciesId), text(breedId), text(profileMediaId),
-            date(birth), text(sex), bool(isNeutered), weight, bool(basicVaccinationCompleted));
+    public void setSpeciesId(Object value) {
+        this.speciesId = RequestValue.text(value);
     }
 
-    @JsonAnySetter
-    public void rejectUnknown(String field, JsonNode value) {
-        throw invalid();
+    public void setBreedId(Object value) {
+        this.breedId = RequestValue.text(value);
     }
 
-    private static boolean absent(JsonNode value) {
-        return value == null || value.isNull();
+    public void setProfileMediaId(Object value) {
+        this.profileMediaId = RequestValue.text(value);
     }
 
-    private static String text(JsonNode value) {
-        if (absent(value)) {
-            return null;
-        }
-        if (!value.isString()) {
-            throw invalid();
-        }
-        return value.stringValue();
+    public void setBirth(Object value) {
+        this.birth = RequestValue.date(value);
     }
 
-    private static Boolean bool(JsonNode value) {
-        if (absent(value)) {
-            return null;
-        }
-        if (!value.isBoolean()) {
-            throw invalid();
-        }
-        return value.booleanValue();
+    public void setSex(Object value) {
+        this.sex = RequestValue.text(value);
     }
 
-    private static LocalDate date(JsonNode value) {
-        String date = text(value);
-        if (date == null) {
-            return null;
-        }
-        if (!date.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
-            throw invalid();
-        }
-        try {
-            return LocalDate.parse(date);
-        } catch (DateTimeParseException exception) {
-            throw invalid();
-        }
+    public void setIsNeutered(Object value) {
+        this.isNeutered = RequestValue.bool(value);
     }
 
-    private static BusinessException invalid() {
-        return new BusinessException(ErrorCode.VALIDATION_ERROR);
+    public void setWeight(Object value) {
+        this.weight = RequestValue.decimal(value);
+    }
+
+    public void setBasicVaccinationCompleted(Object value) {
+        this.basicVaccinationCompleted = RequestValue.bool(value);
     }
 }
