@@ -1,60 +1,38 @@
 package com.louiekury.pet.pet.adapter.in.web.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import java.beans.ConstructorProperties;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
 public class CreatePetRequestDto {
     @NotBlank(message = "반려동물 이름은 필수입니다.")
-    private String name;
+    private final String name;
     @NotBlank(message = "반려동물 종은 필수입니다.")
-    private String speciesId;
-    private String breedId;
-    private String profileMediaId;
-    private LocalDate birth;
+    private final String speciesId;
+    private final String breedId;
+    private final String profileMediaId;
+    private final LocalDate birth;
     @NotBlank(message = "반려동물 성별은 필수입니다.")
-    private String sex;
-    private Boolean isNeutered;
-    private BigDecimal weight;
-    private Boolean basicVaccinationCompleted;
+    private final String sex;
+    private final Boolean isNeutered;
+    private final BigDecimal weight;
+    private final Boolean basicVaccinationCompleted;
 
-    public void setName(String name) {
+    @ConstructorProperties({"name", "speciesId", "breedId", "profileMediaId", "birth", "sex",
+        "isNeutered", "weight", "basicVaccinationCompleted"})
+    public CreatePetRequestDto(String name, String speciesId, String breedId, String profileMediaId,
+            LocalDate birth, String sex, Boolean isNeutered, BigDecimal weight, Boolean basicVaccinationCompleted) {
         this.name = name;
-    }
-
-    public void setSpeciesId(String speciesId) {
         this.speciesId = speciesId;
-    }
-
-    public void setBreedId(String breedId) {
         this.breedId = breedId;
-    }
-
-    public void setProfileMediaId(String profileMediaId) {
         this.profileMediaId = profileMediaId;
-    }
-
-    public void setBirth(LocalDate birth) {
         this.birth = birth;
-    }
-
-    public void setSex(String sex) {
         this.sex = sex;
-    }
-
-    public void setIsNeutered(Boolean isNeutered) {
         this.isNeutered = isNeutered;
-    }
-
-    public void setWeight(BigDecimal weight) {
         this.weight = weight;
-    }
-
-    public void setBasicVaccinationCompleted(Boolean basicVaccinationCompleted) {
         this.basicVaccinationCompleted = basicVaccinationCompleted;
     }
 }

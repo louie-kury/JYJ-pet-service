@@ -1,6 +1,7 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.pet.adapter.in.web.dto.request.UpdatePetRequest;
+import com.louiekury.pet.global.config.WebBindingConfig;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.DeserializationFeature;
@@ -11,9 +12,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PetRequestBindingTest {
-    private final JsonMapper mapper = JsonMapper.builder().disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
-        .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .build();
+    private final JsonMapper mapper = mapper();
+
+    private static JsonMapper mapper() {
+        var builder = JsonMapper.builder().disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        WebBindingConfig.configure(builder);
+        return builder.build();
+    }
 
     @Test
     void distinguishesOmittedNullAndValue() {
