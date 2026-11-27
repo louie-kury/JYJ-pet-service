@@ -2,9 +2,9 @@ package com.louiekury.pet.vaccine.adapter.out.persistence;
 
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
-import com.louiekury.pet.vaccine.application.createvaccine.CreateVaccinePort;
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
-import com.louiekury.pet.vaccine.application.listvaccines.ListVaccinesPort;
+import com.louiekury.pet.vaccine.application.port.out.CreateVaccinePort;
+import com.louiekury.pet.vaccine.application.port.out.ListVaccinesPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

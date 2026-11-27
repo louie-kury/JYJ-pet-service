@@ -2,6 +2,8 @@ package com.louiekury.pet.pet.application.getpet;
 
 import com.louiekury.pet.pet.application.createpet.PetResult;
 import com.louiekury.pet.pet.application.getpets.PetListData;
+import com.louiekury.pet.pet.application.port.in.GetPetUseCase;
+import com.louiekury.pet.pet.application.port.out.GetPetPort;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;
@@ -13,7 +15,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class GetPetService {
+public class GetPetService implements GetPetUseCase {
     private final GetPetPort port;
     private final Clock clock;
 

@@ -1,9 +1,9 @@
 package com.louiekury.pet.vaccine.adapter.in.web;
 
 import com.louiekury.pet.global.web.response.ApiResponse;
-import com.louiekury.pet.vaccine.application.createvaccine.CreateVaccineUseCase;
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
-import com.louiekury.pet.vaccine.application.listvaccines.ListVaccinesUseCase;
+import com.louiekury.pet.vaccine.application.port.in.CreateVaccineUseCase;
+import com.louiekury.pet.vaccine.application.port.in.ListVaccinesUseCase;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

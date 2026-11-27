@@ -1,6 +1,6 @@
 package com.louiekury.pet.pet.adapter.out.persistence;
 
-import com.louiekury.pet.pet.application.updatepet.UpdatePetPort;
+import com.louiekury.pet.pet.application.port.out.UpdatePetPort;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.mongodb.MongoException;

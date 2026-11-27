@@ -1,4 +1,4 @@
-package com.louiekury.pet.vaccine.application.listvaccines;
+package com.louiekury.pet.vaccine.application.port.in;
 
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
 import java.util.List;

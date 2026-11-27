@@ -31,7 +31,7 @@ class PetMvcAuthConfigTest {
         @Bean PetController petController(PetWebAdapter adapter) { return new PetController(adapter); }
         @Bean PetUpdateController updateController(PetWebAdapter adapter) { return new PetUpdateController(adapter); }
         @Bean DeletePetService deletePetService() { return mock(DeletePetService.class); }
-        @Bean PetDeleteController deleteController(DeletePetService service) { return new PetDeleteController(service); }
+        @Bean PetDeleteController deleteController(DeletePetService service) { return new PetDeleteController(new PetDeleteWebAdapter(service)); }
         @Bean GlobalExceptionHandler exceptionHandler() { return new GlobalExceptionHandler(); }
     }
 
