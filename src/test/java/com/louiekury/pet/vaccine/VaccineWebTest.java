@@ -34,6 +34,7 @@ class VaccineWebTest {
         listPort = mock(GetVaccinesPort.class);
         mvc = MockMvcBuilders.standaloneSetup(new VaccineController(new VaccineWebAdapter(
             new CreateVaccineService(port), new GetVaccinesService(listPort))))
+            .setMessageConverters(com.louiekury.pet.pet.adapter.in.web.RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
