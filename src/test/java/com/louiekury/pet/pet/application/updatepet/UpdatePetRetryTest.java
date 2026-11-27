@@ -1,6 +1,7 @@
 package com.louiekury.pet.pet.application.updatepet;
 
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
+import com.louiekury.pet.pet.application.port.out.UpdatePetPort;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;

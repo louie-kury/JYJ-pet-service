@@ -1,12 +1,12 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
-import com.louiekury.pet.pet.adapter.out.persistence.PetUpdatePersistenceAdapter;
 import com.louiekury.pet.pet.adapter.out.persistence.PetBreedPersistenceAdapter;
 import com.louiekury.pet.pet.adapter.out.persistence.PetListPersistenceAdapter;
-import com.louiekury.pet.pet.application.createpet.CreatePetUseCase;
+import com.louiekury.pet.pet.adapter.out.persistence.PetUpdatePersistenceAdapter;
 import com.louiekury.pet.pet.application.getpets.GetPetsQuery;
-import com.louiekury.pet.pet.application.getpets.GetPetsUseCase;
+import com.louiekury.pet.pet.application.port.in.CreatePetUseCase;
+import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
 import com.louiekury.pet.pet.application.updatepet.UpdatePetService;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
@@ -49,7 +49,8 @@ class PetUpdateMongoIntegrationTest {
         var service = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo, com.louiekury.pet.pet.support.CatalogFixtures.species(), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds()), com.louiekury.pet.pet.support.CatalogFixtures.noBreeds(), com.louiekury.pet.pet.support.CatalogFixtures.species(),
             Clock.fixed(Instant.parse("2026-11-25T00:00:00Z"), ZoneOffset.UTC));
         mvc = MockMvcBuilders.standaloneSetup(new PetUpdateController(new PetWebAdapter(
-            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
+            mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), service, mock(com.louiekury.pet.pet.application.port.in.GetPetUseCase.class))))
+            .setMessageConverters(RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler())
             .defaultRequest(patch("/").requestAttr(PetRegistrationAuthInterceptor.CAREGIVER_ID, "owner-a"))
             .build();

@@ -73,7 +73,7 @@ class PetCatalogCrossStoreIntegrationTest {
         assertThat(list.getContent().get(0).getBreed().getName()).isEqualTo("푸들");
         var detail = new PetDetailPersistenceAdapter(mongo, listAdapter).getPet(result.getPetId(), "owner");
         assertThat(detail).isPresent();
-        assertThat(detail.orElseThrow().summary().getSpecies().getName()).isEqualTo("강아지");
+        assertThat(detail.orElseThrow().getSummary().getSpecies().getName()).isEqualTo("강아지");
 
         var update = new UpdatePetService(new PetUpdatePersistenceAdapter(mongo, species, breeds), breeds, species, clock);
         var changed = update.updatePet(result.getPetId(), new HashMap<>(Map.of("name", "수정")), "owner");

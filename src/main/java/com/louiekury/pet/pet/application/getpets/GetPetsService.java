@@ -1,5 +1,6 @@
 package com.louiekury.pet.pet.application.getpets;
 
+import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
 import com.louiekury.pet.pet.application.port.out.GetPetsPort;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;

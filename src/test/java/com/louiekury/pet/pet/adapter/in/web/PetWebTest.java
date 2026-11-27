@@ -1,12 +1,12 @@
 package com.louiekury.pet.pet.adapter.in.web;
 
-import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
 import com.louiekury.pet.global.security.AuthenticatedMember;
+import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
+import com.louiekury.pet.pet.application.createpet.CreatePetService;
+import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
+import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import com.louiekury.pet.pet.application.port.out.CreatePetPort;
 import com.louiekury.pet.pet.application.port.out.GetPetBreedPort;
-import com.louiekury.pet.pet.application.createpet.CreatePetService;
-import com.louiekury.pet.pet.application.getpets.GetPetsUseCase;
-import com.louiekury.pet.pet.application.updatepet.UpdatePetUseCase;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import java.time.Clock;
@@ -45,8 +45,9 @@ class PetWebTest {
         when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         when(auth.require("Bearer invalid")).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         when(auth.require("Bearer unavailable")).thenThrow(new BusinessException(ErrorCode.AUTH_SERVICE_UNAVAILABLE));
-        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.getpet.GetPetService.class))))
+        mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(com.louiekury.pet.pet.application.port.in.GetPetUseCase.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
+            .setMessageConverters(RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 

@@ -2,10 +2,10 @@ package com.louiekury.pet.pet.adapter.in.web;
 
 import com.louiekury.pet.global.security.AuthenticatedMember;
 import com.louiekury.pet.global.web.exception.GlobalExceptionHandler;
-import com.louiekury.pet.pet.application.createpet.CreatePetUseCase;
-import com.louiekury.pet.pet.application.getpet.GetPetService;
-import com.louiekury.pet.pet.application.getpets.GetPetsUseCase;
-import com.louiekury.pet.pet.application.updatepet.UpdatePetUseCase;
+import com.louiekury.pet.pet.application.port.in.CreatePetUseCase;
+import com.louiekury.pet.pet.application.port.in.GetPetUseCase;
+import com.louiekury.pet.pet.application.port.in.GetPetsUseCase;
+import com.louiekury.pet.pet.application.port.in.UpdatePetUseCase;
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PetDetailWebTest {
     @Test void missingTokenIsRejectedBeforeQuery() throws Exception {
         var auth = mock(AuthenticatedMember.class);
-        var detail = mock(GetPetService.class);
+        var detail = mock(GetPetUseCase.class);
         when(auth.require(null)).thenThrow(new BusinessException(ErrorCode.UNAUTHORIZED));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
             mock(CreatePetUseCase.class), mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), detail)))
@@ -30,7 +30,7 @@ class PetDetailWebTest {
     }
     @Test void authenticatedOwnerCanReadDetail() throws Exception {
         var auth = mock(AuthenticatedMember.class);
-        var detail = mock(GetPetService.class);
+        var detail = mock(GetPetUseCase.class);
         when(auth.require("Bearer valid")).thenReturn("member-1");
         var now = java.time.Instant.parse("2026-11-26T00:00:00Z");
         when(detail.getPet("pet-1", "member-1")).thenReturn(com.louiekury.pet.pet.application.createpet.PetResult.updated(
@@ -53,7 +53,7 @@ class PetDetailWebTest {
             java.time.Clock.fixed(java.time.Instant.parse("2026-11-26T00:00:00Z"), java.time.ZoneOffset.UTC));
         when(auth.require("Bearer valid")).thenReturn("member-1");
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new PetController(new PetWebAdapter(
-            service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(GetPetService.class))))
+            service, mock(GetPetsUseCase.class), mock(UpdatePetUseCase.class), mock(GetPetUseCase.class))))
             .addInterceptors(new PetRegistrationAuthInterceptor(auth))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/pets")

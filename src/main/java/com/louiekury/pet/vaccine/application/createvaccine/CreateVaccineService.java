@@ -2,6 +2,8 @@ package com.louiekury.pet.vaccine.application.createvaccine;
 
 import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
+import com.louiekury.pet.vaccine.application.port.in.CreateVaccineUseCase;
+import com.louiekury.pet.vaccine.application.port.out.CreateVaccinePort;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -5,11 +5,11 @@ import com.louiekury.pet.shared.exception.BusinessException;
 import com.louiekury.pet.shared.exception.ErrorCode;
 import com.louiekury.pet.vaccine.adapter.in.web.VaccineController;
 import com.louiekury.pet.vaccine.adapter.in.web.VaccineWebAdapter;
-import com.louiekury.pet.vaccine.application.createvaccine.CreateVaccinePort;
 import com.louiekury.pet.vaccine.application.createvaccine.CreateVaccineService;
 import com.louiekury.pet.vaccine.application.createvaccine.VaccineResult;
-import com.louiekury.pet.vaccine.application.listvaccines.ListVaccinesPort;
-import com.louiekury.pet.vaccine.application.listvaccines.ListVaccinesService;
+import com.louiekury.pet.vaccine.application.getvaccines.GetVaccinesService;
+import com.louiekury.pet.vaccine.application.port.out.CreateVaccinePort;
+import com.louiekury.pet.vaccine.application.port.out.GetVaccinesPort;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,21 +25,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class VaccineWebTest {
     private CreateVaccinePort port;
-    private ListVaccinesPort listPort;
+    private GetVaccinesPort listPort;
     private MockMvc mvc;
 
     @BeforeEach
     void setup() {
         port = mock(CreateVaccinePort.class);
-        listPort = mock(ListVaccinesPort.class);
+        listPort = mock(GetVaccinesPort.class);
         mvc = MockMvcBuilders.standaloneSetup(new VaccineController(new VaccineWebAdapter(
-            new CreateVaccineService(port), new ListVaccinesService(listPort))))
+            new CreateVaccineService(port), new GetVaccinesService(listPort))))
+            .setMessageConverters(com.louiekury.pet.pet.adapter.in.web.RequestTestConverter.create())
             .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
     void listsAllVaccinesWithoutAuthentication() throws Exception {
-        when(listPort.listVaccines()).thenReturn(List.of(new VaccineResult("id-1", "광견병"),
+        when(listPort.getVaccines()).thenReturn(List.of(new VaccineResult("id-1", "광견병"),
             new VaccineResult("id-2", "종합백신")));
         mvc.perform(get("/api/vaccine-names"))
             .andExpect(status().isOk())
@@ -52,14 +53,14 @@ class VaccineWebTest {
 
     @Test
     void returnsEmptyListWhenNoVaccinesExist() throws Exception {
-        when(listPort.listVaccines()).thenReturn(List.of());
+        when(listPort.getVaccines()).thenReturn(List.of());
         mvc.perform(get("/api/vaccine-names"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test
     void listDatabaseFailureReturnsServiceUnavailable() throws Exception {
-        when(listPort.listVaccines()).thenThrow(new BusinessException(ErrorCode.VACCINE_QUERY_UNAVAILABLE));
+        when(listPort.getVaccines()).thenThrow(new BusinessException(ErrorCode.VACCINE_QUERY_UNAVAILABLE));
         mvc.perform(get("/api/vaccine-names"))
             .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("VACCINE_QUERY_UNAVAILABLE"));
     }
